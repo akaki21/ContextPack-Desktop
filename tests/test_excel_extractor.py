@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -80,6 +81,33 @@ class ExcelExtractorTests(unittest.TestCase):
             metrics = json.loads((output / "excel-metrics.json").read_text(encoding="utf-8"))
             self.assertEqual(metrics["sheets"][0]["charts"], 1)
             self.assertEqual(metrics["sheets"][0]["images"], 0)
+
+    def test_missing_calculation_properties_are_reported_as_unspecified(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            original = root / "original.xlsx"
+            source = root / "without-calculation-properties.xlsx"
+            output = root / "package"
+            workbook = Workbook()
+            workbook.active["A1"] = "valid workbook without calcPr"
+            workbook.save(original)
+
+            with zipfile.ZipFile(original) as input_archive, zipfile.ZipFile(source, "w") as output_archive:
+                for item in input_archive.infolist():
+                    content = input_archive.read(item.filename)
+                    if item.filename == "xl/workbook.xml":
+                        text = content.decode("utf-8")
+                        text = text.replace(
+                            '<calcPr calcId="124519" fullCalcOnLoad="1"/>',
+                            "",
+                        )
+                        content = text.encode("utf-8")
+                    output_archive.writestr(item, content)
+
+            self.run_extractor(source, output)
+
+            info = (output / "workbook-info.md").read_text(encoding="utf-8")
+            self.assertIn("- Calculation mode: unspecified", info)
 
 
 if __name__ == "__main__":

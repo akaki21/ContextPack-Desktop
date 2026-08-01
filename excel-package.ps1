@@ -109,6 +109,7 @@ function Export-ExcelLayout {
             $status = if ($Layout -eq 'Workbook') { 'preserved' } else { 'skipped' }
             $reasons = @()
             $printAreaAfter = $printAreaBefore
+            $fitToPagesWide = $null
 
             if ($Layout -eq 'AutoFit') {
                 if (-not $visible) { $reasons += 'sheet is hidden' }
@@ -123,9 +124,11 @@ function Export-ExcelLayout {
                     $printAreaAfter = [string]$usedDataRange.Address()
                     Invoke-ExcelRetry { $worksheet.PageSetup.PrintArea = $printAreaAfter } | Out-Null
                     Invoke-ExcelRetry { $worksheet.PageSetup.Zoom = $false } | Out-Null
-                    Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesWide = 1 } | Out-Null
+                    $fitToPagesWide = [Math]::Max(1, [Math]::Ceiling([int]$metric.populated_column_span / 8.0))
+                    Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesWide = $fitToPagesWide } | Out-Null
                     Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesTall = $false } | Out-Null
                     $status = 'applied'
+                    if ($fitToPagesWide -gt 1) { $reasons += "wide sheet split across $fitToPagesWide pages to preserve readability" }
                     if ([int]$metric.merged_ranges -gt 0) { $reasons += 'merged cells are present; verify page boundaries visually' }
                     try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($usedDataRange) | Out-Null } catch { }
                     try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($startCell) | Out-Null } catch { }
@@ -141,6 +144,7 @@ function Export-ExcelLayout {
                 reasons = @($reasons)
                 print_area_before = $printAreaBefore
                 print_area_after = $printAreaAfter
+                fit_to_pages_wide = $fitToPagesWide
                 print_title_rows = $titleRows
                 print_title_columns = $titleColumns
                 manual_horizontal_page_breaks = $horizontalBreaks
@@ -177,15 +181,22 @@ try {
     $sheetMetricMap = @{}
     foreach ($sheetMetric in $metrics.sheets) { $sheetMetricMap[[string]$sheetMetric.title] = $sheetMetric }
     $layoutDiagnostics = @()
+    $layoutWarnings = @()
+    $maxRenderedPages = 1000
 
     if ($RenderMode -in @('Workbook', 'Both')) {
         $workbookLayoutDir = Join-Path $renderedDir 'workbook-layout'
         $workbookPages = Join-Path $workbookLayoutDir 'pages'
         New-Item -ItemType Directory -Path $workbookPages -Force | Out-Null
         $workbookPdf = Join-Path $workbookLayoutDir 'workbook.pdf'
+        $workbookRenderMetricsPath = Join-Path $workbookLayoutDir 'page-render-metrics.json'
         $layoutDiagnostics += Export-ExcelLayout -Layout Workbook -PdfPath $workbookPdf -SheetMetrics $sheetMetricMap
-        & $python $renderer $workbookPdf $workbookPages --dpi $Dpi
+        & $python $renderer $workbookPdf $workbookPages --dpi $Dpi --metrics $workbookRenderMetricsPath --max-pages $maxRenderedPages
         if ($LASTEXITCODE -ne 0) { throw 'Rendering workbook-layout PDF failed' }
+        $workbookRenderMetrics = Get-Content -LiteralPath $workbookRenderMetricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($workbookRenderMetrics.render_skipped) {
+            $layoutWarnings += "Workbook-layout PNG rendering skipped: $($workbookRenderMetrics.reason) The complete PDF is preserved."
+        }
     }
 
     if ($RenderMode -in @('AutoFit', 'Both')) {
@@ -193,9 +204,14 @@ try {
         $autoPages = Join-Path $autoLayoutDir 'pages'
         New-Item -ItemType Directory -Path $autoPages -Force | Out-Null
         $autoPdf = Join-Path $autoLayoutDir 'workbook.pdf'
+        $autoRenderMetricsPath = Join-Path $autoLayoutDir 'page-render-metrics.json'
         $layoutDiagnostics += Export-ExcelLayout -Layout AutoFit -PdfPath $autoPdf -SheetMetrics $sheetMetricMap
-        & $python $renderer $autoPdf $autoPages --dpi $Dpi
+        & $python $renderer $autoPdf $autoPages --dpi $Dpi --metrics $autoRenderMetricsPath --max-pages $maxRenderedPages
         if ($LASTEXITCODE -ne 0) { throw 'Rendering auto-layout PDF failed' }
+        $autoRenderMetrics = Get-Content -LiteralPath $autoRenderMetricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        if ($autoRenderMetrics.render_skipped) {
+            $layoutWarnings += "Auto-layout PNG rendering skipped: $($autoRenderMetrics.reason) The complete PDF is preserved."
+        }
     }
 
     $layoutReportPath = Join-Path $packageDir 'print-layout-report.json'
@@ -203,7 +219,6 @@ try {
     $autoDiagnostics = @($layoutDiagnostics | Where-Object { $_.layout -eq 'AutoFit' })
     $autoApplied = @($autoDiagnostics | Where-Object { $_.status -eq 'applied' })
     $autoSkipped = @($autoDiagnostics | Where-Object { $_.status -eq 'skipped' })
-    $layoutWarnings = @()
     foreach ($diagnostic in $autoSkipped) { $layoutWarnings += ("AutoFit skipped for sheet '{0}': {1}." -f $diagnostic.sheet, ($diagnostic.reasons -join '; ')) }
     foreach ($diagnostic in $autoApplied | Where-Object { $_.reasons.Count -gt 0 }) { $layoutWarnings += ("AutoFit note for sheet '{0}': {1}." -f $diagnostic.sheet, ($diagnostic.reasons -join '; ')) }
 
@@ -216,7 +231,7 @@ try {
         "- AutoFit applied sheets: $($autoApplied.Count)"
         "- AutoFit skipped sheets: $($autoSkipped.Count)"
         '- Workbook layout always preserves the workbook print settings.'
-        '- AutoFit keeps hidden rows/columns/sheets hidden, preserves orientation and print titles, fits to one page wide, and leaves page height unlimited.'
+        '- AutoFit keeps hidden rows/columns/sheets hidden, preserves orientation and print titles, and adaptively splits wide tables across horizontal pages to protect readability.'
         $(if ($layoutWarnings.Count) { $layoutWarnings | ForEach-Object { '- ' + $_ } } else { '- No AutoFit safety warning was detected.' })
         ''
         'Auto-layout is a convenience view. Treat workbook-layout and the original workbook as authoritative.'
@@ -243,7 +258,7 @@ try {
         print_layout_report = 'print-layout-report.json'
         quality_report = 'quality-report.md'
     }
-    Write-ContextPackManifest -Build $build -InputPath $inputPath -PackageType 'excel' -Outputs $outputs -Settings ([ordered]@{ dpi = $Dpi; render_mode = $RenderMode; max_autofit_columns = $MaxAutoFitColumns; macros_disabled = $true; events_disabled = $true; source_saved = $false }) -Warnings $warnings
+    Write-ContextPackManifest -Build $build -InputPath $inputPath -PackageType 'excel' -Outputs $outputs -Settings ([ordered]@{ dpi = $Dpi; render_mode = $RenderMode; max_autofit_columns = $MaxAutoFitColumns; max_rendered_pages_per_layout = $maxRenderedPages; macros_disabled = $true; events_disabled = $true; source_saved = $false }) -Warnings $warnings
     $finalPath = Complete-ContextPackBuild $build
     Write-Host "Excel package ready: $finalPath" -ForegroundColor Green
 } catch {

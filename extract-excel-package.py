@@ -55,6 +55,12 @@ def sparse_table(cells: Iterable[Any]) -> str:
     return "\n".join(rows) + "\n"
 
 
+def calculation_mode(workbook) -> str:
+    calculation = getattr(workbook, "calculation", None)
+    mode = getattr(calculation, "calcMode", None)
+    return str(mode) if mode else "unspecified"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("input_workbook")
@@ -194,7 +200,7 @@ def main() -> None:
         f"- Sheets: {len(formulas_book.worksheets)}",
         f"- Defined names: {len(formulas_book.defined_names)}",
         f"- External links: {external_links}",
-        f"- Calculation mode: {formulas_book.calculation.calcMode or 'unspecified'}",
+        f"- Calculation mode: {calculation_mode(formulas_book)}",
         f"- Total formulas: {total_formulas}",
         f"- Cached formula errors: {total_errors}",
         "",

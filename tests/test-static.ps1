@@ -17,6 +17,8 @@ if ($excelScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel e
 if ($excelScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Automatic external-link updates are not disabled.' }
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
 if ($excelScript -notmatch "RenderMode\s*=\s*'Both'") { $failures += 'Safe dual Excel rendering is not the default.' }
+if ($excelScript -notmatch 'Ceiling\(\[int\]\$metric\.populated_column_span\s*/\s*8\.0\)') { $failures += 'AutoFit does not adapt horizontal pagination for readability.' }
+if ($excelScript -notmatch '\$maxRenderedPages\s*=\s*1000') { $failures += 'Excel page rendering does not use the reviewed safety limit.' }
 if ($excelScript -notmatch 'Workbooks\.Open\(\$inputPath,\s*0,\s*\$true\)') { $failures += 'Excel workbook is not opened read-only.' }
 $contextScript = Get-Content -LiteralPath (Join-Path $root 'contextpack.ps1') -Raw -Encoding UTF8
 if ($contextScript -notmatch 'MaxAutoFitColumns') { $failures += 'The main router does not expose the AutoFit width limit.' }

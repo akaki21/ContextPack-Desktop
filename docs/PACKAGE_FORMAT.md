@@ -29,7 +29,7 @@ Excel packages additionally contain:
 - `print-layout-report.json` with per-sheet AutoFit decisions and preserved settings;
 - `excel-metrics.json`.
 
-`Both` is the default Excel render mode and therefore creates two visual render sets. `Workbook` and `AutoFit` create only their selected set. AutoFit uses populated-cell bounds, fits to one page wide with unlimited page height, and skips risky sheets (hidden/empty, over the width limit, manual page breaks, or drawing objects). The default width limit is 60 populated columns and can be set from 10 to 200 with `-MaxAutoFitColumns` on `excel-package.ps1`. Merged cells do not block AutoFit but are recorded as a visual-review warning.
+`Both` is the default Excel render mode and therefore creates two visual render sets. `Workbook` and `AutoFit` create only their selected set. AutoFit uses populated-cell bounds and adaptively splits wide tables across horizontal pages (roughly eight populated columns per page) while leaving page height unlimited. It skips risky sheets (hidden/empty, over the width limit, manual page breaks, or drawing objects). The default width limit is 60 populated columns and can be set from 10 to 200 with `-MaxAutoFitColumns` on `excel-package.ps1`. Merged cells do not block AutoFit but are recorded as a visual-review warning.
 
 The source workbook is opened read-only, with macros, events, and automatic link updates disabled, and is never saved. `manifest.json` records the selected render mode, DPI, AutoFit width limit, safety settings, and which render folders exist. `print-layout-report.json` records the decision, inferred print area, preserved print titles, manual page-break counts, and drawing-object count for every worksheet and requested layout.
 
