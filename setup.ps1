@@ -6,6 +6,9 @@ $venv = Join-Path $root '.venv'
 if ($env:OS -ne 'Windows_NT') { throw 'ContextPack Desktop currently supports Windows only.' }
 
 function Find-PythonLauncher {
+    if (-not [string]::IsNullOrWhiteSpace($env:CONTEXTPACK_PYTHON) -and (Test-Path -LiteralPath $env:CONTEXTPACK_PYTHON -PathType Leaf)) {
+        return @{ Command = (Resolve-Path -LiteralPath $env:CONTEXTPACK_PYTHON).Path; Arguments = @() }
+    }
     $py = Get-Command py.exe -ErrorAction SilentlyContinue
     if ($py) { return @{ Command = $py.Source; Arguments = @('-3') } }
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
@@ -44,7 +47,19 @@ $pythonArguments = $launcher.Arguments
 & $pythonCommand @pythonArguments -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 10) else 1)"
 if ($LASTEXITCODE -ne 0) { throw 'ContextPack requires Python 3.10 or newer.' }
 
+$venvPython = Join-Path $venv 'Scripts\python.exe'
+if ((Test-Path -LiteralPath $venv) -and -not (Test-Path -LiteralPath $venvPython -PathType Leaf)) {
+    $venvItem = Get-Item -LiteralPath $venv -Force
+    if (($venvItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Refusing to recreate an incomplete .venv reparse point.' }
+    $resolvedRoot = (Resolve-Path -LiteralPath $root).Path
+    $resolvedVenv = (Resolve-Path -LiteralPath $venv).Path
+    if ($resolvedVenv -ne (Join-Path $resolvedRoot '.venv')) { throw "Unexpected incomplete environment path: $resolvedVenv" }
+    Write-Warning 'The existing .venv is incomplete and will be recreated.'
+    Remove-Item -LiteralPath $resolvedVenv -Recurse -Force
+}
 if ($ForceRecreate -and (Test-Path -LiteralPath $venv)) {
+    $venvItem = Get-Item -LiteralPath $venv -Force
+    if (($venvItem.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) { throw 'Refusing to remove a .venv reparse point with ForceRecreate.' }
     $resolvedRoot = (Resolve-Path -LiteralPath $root).Path
     $resolvedVenv = (Resolve-Path -LiteralPath $venv).Path
     if ($resolvedVenv -ne (Join-Path $resolvedRoot '.venv')) { throw "Unexpected environment path: $resolvedVenv" }
@@ -56,7 +71,7 @@ if (-not (Test-Path -LiteralPath $venv)) {
     if ($LASTEXITCODE -ne 0) { throw 'Failed to create .venv.' }
 }
 
-$python = Join-Path $venv 'Scripts\python.exe'
+$python = $venvPython
 Write-Host 'Installing Python dependencies...' -ForegroundColor Cyan
 & $python -m pip install --upgrade pip
 if ($LASTEXITCODE -ne 0) { throw 'Failed to upgrade pip.' }
