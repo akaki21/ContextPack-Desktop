@@ -1,0 +1,4 @@
+markitdown[pdf,docx,pptx,xls,xlsx,outlook,audio-transcription,youtube-transcription,az-doc-intel]==0.1.7
+ocrmypdf==17.8.1
+openpyxl==3.1.5
+pypdfium2==5.12.1

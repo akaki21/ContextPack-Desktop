@@ -1,0 +1,16 @@
+.venv/
+tessdata/*
+!tessdata/.gitkeep
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+!output/README.md
+!output/README.ka.md
+__pycache__/
+*.py[cod]
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
