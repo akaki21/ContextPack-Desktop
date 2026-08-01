@@ -1,4 +1,4 @@
-﻿$script:ContextPackVersion = '2.1.0'
+﻿$script:ContextPackVersion = '2.2.0'
 
 function Get-ContextPackPython {
     $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
@@ -48,10 +48,16 @@ function Get-ContextPackSafeName {
 function New-ContextPackBuild {
     param(
         [Parameter(Mandatory = $true)][string]$InputPath,
-        [Parameter(Mandatory = $true)][string]$PreferredName
+        [Parameter(Mandatory = $true)][string]$PreferredName,
+        [string]$OutputDirectory
     )
-    $outputRoot = Join-Path $PSScriptRoot 'output'
+    $outputRoot = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+        Join-Path $PSScriptRoot 'output'
+    } else {
+        [System.IO.Path]::GetFullPath($OutputDirectory)
+    }
     New-Item -ItemType Directory -Path $outputRoot -Force | Out-Null
+    $outputRoot = (Resolve-Path -LiteralPath $outputRoot).Path
     $sourceHash = (Get-FileHash -LiteralPath $InputPath -Algorithm SHA256).Hash.ToLowerInvariant()
     $safeName = Get-ContextPackSafeName $PreferredName
     $finalPath = Join-Path $outputRoot $safeName
@@ -65,15 +71,16 @@ function New-ContextPackBuild {
     }
     $buildPath = Join-Path $outputRoot ('.contextpack-building-' + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $buildPath | Out-Null
-    return [pscustomobject]@{ BuildPath = $buildPath; FinalPath = $finalPath; SourceHash = $sourceHash }
+    return [pscustomobject]@{ BuildPath = $buildPath; FinalPath = $finalPath; OutputRoot = $outputRoot; SourceHash = $sourceHash }
 }
 
 function Complete-ContextPackBuild {
     param([Parameter(Mandatory = $true)]$Build)
     $buildPath = [System.IO.Path]::GetFullPath($Build.BuildPath)
     $finalPath = [System.IO.Path]::GetFullPath($Build.FinalPath)
-    $outputRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output'))
-    if (-not $buildPath.StartsWith($outputRoot + [System.IO.Path]::DirectorySeparatorChar) -or -not $finalPath.StartsWith($outputRoot + [System.IO.Path]::DirectorySeparatorChar)) {
+    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output')) }
+    $outputPrefix = $outputRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+    if (-not $buildPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or -not $finalPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw 'Refusing to finalize a package outside the output directory.'
     }
     $backupPath = $null
@@ -97,8 +104,9 @@ function Remove-ContextPackBuild {
     param([Parameter(Mandatory = $true)]$Build)
     if (-not $Build -or -not $Build.BuildPath) { return }
     $buildPath = [System.IO.Path]::GetFullPath($Build.BuildPath)
-    $outputRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output'))
-    if ($buildPath.StartsWith($outputRoot + [System.IO.Path]::DirectorySeparatorChar) -and (Split-Path -Leaf $buildPath).StartsWith('.contextpack-building-') -and (Test-Path -LiteralPath $buildPath)) {
+    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output')) }
+    $outputPrefix = $outputRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+    if ($buildPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and (Split-Path -Leaf $buildPath).StartsWith('.contextpack-building-') -and (Test-Path -LiteralPath $buildPath)) {
         Remove-Item -LiteralPath $buildPath -Recurse -Force
     }
 }
