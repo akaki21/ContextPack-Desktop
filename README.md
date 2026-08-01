@@ -35,6 +35,10 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 
 ## Install
 
+For most Windows users, download `ContextPack-Setup-2.2.0.exe` from the latest GitHub Release and double-click it. The installer prepares dependencies, creates Start Menu shortcuts, optionally creates a Desktop shortcut, and supports repair/uninstall. See the [English installation guide](docs/INSTALLATION.md) or [Georgian guide](docs/INSTALLATION.ka.md).
+
+For developers or portable use:
+
 ```powershell
 git clone https://github.com/akaki21/ContextPack-Desktop.git
 cd ContextPack-Desktop

@@ -6,6 +6,10 @@ ContextPack Desktop გარდაქმნის PDF-ს, სკანს, Exc
 
 [English documentation](README.md)
 
+## მარტივი ინსტალაცია
+
+Windows-ის მომხმარებლებისთვის რეკომენდებულია GitHub-ის უახლესი Release-დან `ContextPack-Setup-2.2.0.exe`-ის ჩამოტვირთვა და ორჯერ დაწკაპუნება. installer ავტომატურად ამზადებს კომპონენტებს, ქმნის Start Menu shortcut-ებს, სურვილის შემთხვევაში Desktop shortcut-საც და მხარს უჭერს repair/uninstall-ს. იხილე [ქართული ინსტალაციის ინსტრუქცია](docs/INSTALLATION.ka.md) ან [English guide](docs/INSTALLATION.md).
+
 ## v2.2-ის მთავარი ცვლილებები
 
 - სრულად ორენოვანი ქართული/ინგლისური Desktop GUI და ორმაგი დაწკაპუნებით გასაშვები Windows launcher;
