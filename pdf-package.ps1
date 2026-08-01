@@ -1,8 +1,6 @@
 ﻿param(
-    [Parameter(Mandatory = $true, Position = 0)]
-    [string]$InputFile,
-    [ValidateRange(96, 300)]
-    [int]$Dpi = 180,
+    [Parameter(Mandatory = $true, Position = 0)][string]$InputFile,
+    [ValidateRange(96, 300)][int]$Dpi = 180,
     [switch]$Ocr
 )
 
@@ -12,85 +10,76 @@ $root = $PSScriptRoot
 $python = Get-ContextPackPython
 $renderer = Join-Path $root 'render-pdf-pages.py'
 $inputPath = (Resolve-Path -LiteralPath $InputFile).Path
-
-if ([System.IO.Path]::GetExtension($inputPath).ToLowerInvariant() -ne '.pdf') {
-    throw 'This script accepts PDF files only.'
-}
+if (-not (Test-Path -LiteralPath $inputPath -PathType Leaf)) { throw 'Input must be a file.' }
+if ([System.IO.Path]::GetExtension($inputPath).ToLowerInvariant() -ne '.pdf') { throw 'This script accepts PDF files only.' }
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
-$packageDir = Join-Path (Join-Path $root 'output') $baseName
-$pagesDir = Join-Path $packageDir 'pages'
-$markdown = Join-Path $packageDir ($baseName + '.md')
-$ocrPdf = Join-Path $packageDir ($baseName + '_ocr.pdf')
+$build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_pdf_package')
+try {
+    $packageDir = $build.BuildPath
+    $pagesDir = Join-Path $packageDir 'pages'
+    $markdown = Join-Path $packageDir ($baseName + '.md')
+    $pageText = Join-Path $packageDir 'page-text.md'
+    $metricsPath = Join-Path $packageDir 'pdf-metrics.json'
+    $ocrPdf = Join-Path $packageDir ($baseName + '_ocr.pdf')
+    New-Item -ItemType Directory -Path $pagesDir -Force | Out-Null
+    $sourceName = [System.IO.Path]::GetFileName($inputPath)
+    Copy-Item -LiteralPath $inputPath -Destination (Join-Path $packageDir $sourceName) -Force
 
-New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
-New-Item -ItemType Directory -Path $pagesDir -Force | Out-Null
-$sourceCopy = Join-Path $packageDir ([System.IO.Path]::GetFileName($inputPath))
-if ($inputPath -ne $sourceCopy) { Copy-Item -LiteralPath $inputPath -Destination $sourceCopy -Force }
+    $textSource = $inputPath
+    if ($Ocr) {
+        $null = Enable-ContextPackOcr
+        & $python -m ocrmypdf --skip-text --rotate-pages --deskew --output-type pdf --optimize 0 -l kat+eng $inputPath $ocrPdf
+        if ($LASTEXITCODE -ne 0) { throw "OCRmyPDF failed with exit code: $LASTEXITCODE" }
+        $textSource = $ocrPdf
+    }
 
-if ($Ocr) {
-    $null = Enable-ContextPackOcr
-    & $python -m ocrmypdf --skip-text --rotate-pages --deskew --output-type pdf --optimize 0 -l kat+eng $inputPath $ocrPdf
-    if ($LASTEXITCODE -ne 0) { throw "OCRmyPDF failed with exit code: $LASTEXITCODE" }
-    & $python -m markitdown $ocrPdf -o $markdown
-} else {
-    & $python -m markitdown $inputPath -o $markdown
+    & $python -m markitdown $textSource -o $markdown
+    if ($LASTEXITCODE -ne 0) { throw "MarkItDown failed with exit code: $LASTEXITCODE" }
+    $env:PYTHONUTF8 = '1'
+    & $python $renderer $textSource $pagesDir --dpi $Dpi --page-text $pageText --metrics $metricsPath
+    if ($LASTEXITCODE -ne 0) { throw "PDF rendering failed with exit code: $LASTEXITCODE" }
+
+    $metrics = Get-Content -LiteralPath $metricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $warnings = @()
+    if ($metrics.sparse_pages.Count -gt 0) { $warnings += ('Sparse or missing text on page(s): ' + ($metrics.sparse_pages -join ', ')) }
+    $quality = @(
+        "# Quality report — $sourceName"
+        ''
+        "- Pages: $($metrics.page_count)"
+        "- Extracted characters: $($metrics.total_characters)"
+        "- OCR used: $Ocr"
+        "- OCR languages: $(if ($Ocr) { 'Georgian + English (kat+eng)' } else { 'not applicable' })"
+        "- Sparse-text pages: $(if ($metrics.sparse_pages.Count) { $metrics.sparse_pages -join ', ' } else { 'none' })"
+        ''
+        '## Review guidance'
+        ''
+        $(if ($warnings.Count) { '- Verify sparse-text pages against the source PDF or PNG pages.' } else { '- No page-level text coverage warning was detected.' })
+        '- Verify critical names, figures, signatures, stamps, tables, and drawings against the source.'
+    ) -join [Environment]::NewLine
+    Set-Content -LiteralPath (Join-Path $packageDir 'quality-report.md') -Value $quality -Encoding UTF8
+
+    $handoffEnglish = @(
+        "# AI Handoff — PDF: $baseName", '', 'Read the main Markdown first. Use `page-text.md` to map extracted text to source page numbers, `quality-report.md` to find pages requiring review, and the source PDF/selected PNG pages for exact visual verification.', '', 'Goal: [describe the goal]', 'Scope: [pages/topics]', 'Desired output: [format]'
+    ) -join [Environment]::NewLine
+    $handoffGeorgian = @(
+        "# AI Handoff — PDF: $baseName", '', 'ჯერ წაიკითხე მთავარი Markdown. `page-text.md` გამოიყენე ტექსტის საწყის გვერდებთან დასაკავშირებლად, `quality-report.md` — გადასამოწმებელი გვერდების საპოვნელად, ხოლო საწყისი PDF და შერჩეული PNG გვერდები — ზუსტი ვიზუალური შემოწმებისთვის.', '', 'მიზანი: [აღწერე მიზანი]', 'ფარგლები: [გვერდები/თემები]', 'შედეგი: [ფორმატი]'
+    ) -join [Environment]::NewLine
+    Set-Content -LiteralPath (Join-Path $packageDir 'AI-HANDOFF.md') -Value $handoffEnglish -Encoding UTF8
+    Set-Content -LiteralPath (Join-Path $packageDir 'AI-HANDOFF.ka.md') -Value $handoffGeorgian -Encoding UTF8
+
+    $outputs = [ordered]@{
+        source_pdf = $sourceName
+        markdown = [System.IO.Path]::GetFileName($markdown)
+        page_text = 'page-text.md'
+        page_images = 'pages/'
+        ocr_pdf = $(if ($Ocr) { [System.IO.Path]::GetFileName($ocrPdf) } else { $null })
+        quality_report = 'quality-report.md'
+    }
+    Write-ContextPackManifest -Build $build -InputPath $inputPath -PackageType 'pdf' -Outputs $outputs -Settings ([ordered]@{ dpi = $Dpi; ocr = [bool]$Ocr; languages = $(if ($Ocr) { @('kat','eng') } else { @() }) }) -Warnings $warnings
+    $finalPath = Complete-ContextPackBuild $build
+    Write-Host "PDF package ready: $finalPath" -ForegroundColor Green
+} catch {
+    Remove-ContextPackBuild $build
+    throw
 }
-if ($LASTEXITCODE -ne 0) { throw "MarkItDown failed with exit code: $LASTEXITCODE" }
-
-$env:PYTHONUTF8 = '1'
-& $python $renderer $inputPath $pagesDir --dpi $Dpi
-if ($LASTEXITCODE -ne 0) { throw "PDF rendering failed with exit code: $LASTEXITCODE" }
-
-$manifest = @(
-    "Source PDF: $([System.IO.Path]::GetFileName($sourceCopy))"
-    "Markdown: $([System.IO.Path]::GetFileName($markdown))"
-    "Page images: pages\"
-    "DPI: $Dpi"
-    "OCR used: $Ocr"
-) -join [Environment]::NewLine
-Set-Content -LiteralPath (Join-Path $packageDir 'PACKAGE.txt') -Value $manifest -Encoding UTF8
-
-$pdfReference = if ($Ocr) {
-    '2. `{0}_ocr.pdf` — OCR-ისა და ფაქტების გადასამოწმებლად.' -f $baseName
-} else {
-    '2. ორიგინალი PDF — ფაქტებისა და განლაგების გადასამოწმებლად.'
-}
-$handoff = @(
-    ('# AI Handoff — PDF: {0}' -f $baseName)
-    ''
-    '## რა მივაწოდო AI-ს'
-    ''
-    ('1. `{0}.md` — პირველადი სწრაფი წაკითხვისთვის.' -f $baseName)
-    $pdfReference
-    '3. `pages`-დან მხოლოდ საჭირო PNG გვერდები — ნახაზის, ბეჭდის, ხელმოწერის ან რთული განლაგებისთვის.'
-    ''
-    '## მზა მოთხოვნა'
-    ''
-    'ჯერ წაიკითხე Markdown და შეადგინე დოკუმენტის მოკლე რუკა. შემდეგ PDF/გვერდების სურათებში გადაამოწმე მხოლოდ მნიშვნელოვანი ან საეჭვო ადგილები. მიუთითე OCR-ის ან კონვერტაციის შესაძლო შეცდომები. ჩემი მიზანია: [ჩაწერე მიზანი]. პასუხი მინდა: [ჩაწერე ფორმატი].'
-    ''
-    'მნიშვნელოვანი გვერდები ან თემები: [ჩაწერე გვერდები/თემები].'
-) -join [Environment]::NewLine
-Set-Content -LiteralPath (Join-Path $packageDir 'AI-HANDOFF.ka.md') -Value $handoff -Encoding UTF8
-
-$handoffEnglish = @(
-    ('# AI Handoff — PDF: {0}' -f $baseName)
-    ''
-    '## What to give the AI'
-    ''
-    ('1. `{0}.md` for the first, token-efficient reading pass.' -f $baseName)
-    ('2. `{0}` for fact and layout verification.' -f ([System.IO.Path]::GetFileName($sourceCopy)))
-    '3. Only relevant files from `pages` when drawings, signatures, stamps, tables, or layout matter.'
-    ''
-    '## Ready-to-use prompt'
-    ''
-    'Read the Markdown first and build a short content map. Then use the PDF or page images only to verify important or uncertain details. Flag possible OCR or conversion errors. My goal: [describe the goal]. Desired output: [describe the format].'
-    ''
-    'Important pages or topics: [list them].'
-) -join [Environment]::NewLine
-Set-Content -LiteralPath (Join-Path $packageDir 'AI-HANDOFF.md') -Value $handoffEnglish -Encoding UTF8
-
-Write-Host "Package ready: $packageDir" -ForegroundColor Green
-Write-Host "Markdown: $markdown" -ForegroundColor Green
-Write-Host "Page images: $pagesDir" -ForegroundColor Green
-

@@ -1,8 +1,9 @@
-param([switch]$SkipTesseractInstall, [switch]$ForceRecreate)
+﻿param([switch]$SkipTesseractInstall, [switch]$ForceRecreate)
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $venv = Join-Path $root '.venv'
+if ($env:OS -ne 'Windows_NT') { throw 'ContextPack Desktop currently supports Windows only.' }
 
 function Find-PythonLauncher {
     $py = Get-Command py.exe -ErrorAction SilentlyContinue
@@ -10,6 +11,31 @@ function Find-PythonLauncher {
     $python = Get-Command python.exe -ErrorAction SilentlyContinue
     if ($python) { return @{ Command = $python.Source; Arguments = @() } }
     throw 'Python 3 was not found. Install Python 3.10+ from https://www.python.org/downloads/windows/ and run setup.ps1 again.'
+}
+
+function Install-VerifiedModel {
+    param([string]$Language, [string]$ExpectedHash)
+    $destination = Join-Path (Join-Path $root 'tessdata') ($Language + '.traineddata')
+    if (Test-Path -LiteralPath $destination) {
+        $actualHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash
+        if ($actualHash -eq $ExpectedHash) { return }
+    }
+    $commit = '87416418657359cb625c412a48b6e1d6d41c29bd'
+    $url = "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/$commit/$Language.traineddata"
+    $temporary = $destination + '.download-' + [guid]::NewGuid().ToString('N')
+    try {
+        Write-Host "Downloading verified OCR model: $Language" -ForegroundColor Cyan
+        Invoke-WebRequest -Uri $url -OutFile $temporary
+        $downloadHash = (Get-FileHash -LiteralPath $temporary -Algorithm SHA256).Hash
+        if ($downloadHash -ne $ExpectedHash) { throw "Checksum verification failed for $Language.traineddata." }
+        if (Test-Path -LiteralPath $destination) {
+            $backup = $destination + '.backup-' + [guid]::NewGuid().ToString('N')
+            try { [System.IO.File]::Replace($temporary, $destination, $backup, $true) }
+            finally { if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Force } }
+        } else { Move-Item -LiteralPath $temporary -Destination $destination }
+    } finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force }
+    }
 }
 
 $launcher = Find-PythonLauncher
@@ -24,7 +50,6 @@ if ($ForceRecreate -and (Test-Path -LiteralPath $venv)) {
     if ($resolvedVenv -ne (Join-Path $resolvedRoot '.venv')) { throw "Unexpected environment path: $resolvedVenv" }
     Remove-Item -LiteralPath $resolvedVenv -Recurse -Force
 }
-
 if (-not (Test-Path -LiteralPath $venv)) {
     Write-Host 'Creating Python environment...' -ForegroundColor Cyan
     & $pythonCommand @pythonArguments -m venv $venv
@@ -54,14 +79,11 @@ New-Item -ItemType Directory -Path (Join-Path $root 'input'), (Join-Path $root '
 if ($tesseract) {
     $installedTessdata = Join-Path (Split-Path -Parent $tesseract) 'tessdata'
     if (Test-Path -LiteralPath $installedTessdata) { Copy-Item -Path (Join-Path $installedTessdata '*') -Destination (Join-Path $root 'tessdata') -Recurse -Force }
-    foreach ($language in @('eng', 'kat', 'osd')) {
-        $destination = Join-Path (Join-Path $root 'tessdata') ($language + '.traineddata')
-        if (-not (Test-Path -LiteralPath $destination)) {
-            $url = "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/main/$language.traineddata"
-            Write-Host "Downloading OCR model: $language" -ForegroundColor Cyan
-            Invoke-WebRequest -Uri $url -OutFile $destination
-        }
-    }
+    Install-VerifiedModel 'eng' '7D4322BD2A7749724879683FC3912CB542F19906C83BCC1A52132556427170B2'
+    Install-VerifiedModel 'kat' '557ABB6F1C68BC1B286F1BDD00BB6B82F85A427A91899807DAB6C2F6C7986731'
+    Install-VerifiedModel 'osd' '9CF5D576FCC47564F11265841E5CA839001E7E6F38FF7F7AACF46D15A96B00FF'
+} else {
+    Write-Warning 'Tesseract setup was skipped. Markdown and Excel extraction can work, but OCR commands will fail until Tesseract and OCR models are configured.'
 }
 
 Write-Host ''

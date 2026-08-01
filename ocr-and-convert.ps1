@@ -1,4 +1,4 @@
-param(
+﻿param(
     [Parameter(Mandatory = $true, Position = 0)]
     [string]$InputFile
 )
@@ -14,7 +14,7 @@ $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 $ocrPdf = Join-Path $outputDir ($baseName + '_ocr.pdf')
 $markdown = Join-Path $outputDir ($baseName + '.md')
 
-if ([System.IO.Path]::GetExtension($inputPath) -ne '.pdf') {
+if ([System.IO.Path]::GetExtension($inputPath).ToLowerInvariant() -ne '.pdf') {
     throw 'This script accepts PDF files only. Use ocr-image.ps1 for images.'
 }
 New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
