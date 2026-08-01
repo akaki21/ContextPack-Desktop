@@ -13,6 +13,7 @@ All notable user-facing changes to ContextPack Desktop are recorded here.
 - Added live Georgian/English localization for the complete GUI, including dialogs, validation, progress messages, and copied AI tasks.
 - Exposed the Excel AutoFit column limit through the main router.
 - Added GUI core tests and beginner-focused English/Georgian guides.
+- Added real bilingual GUI screenshots, a 60-second demo, and a checked-in sample conversion result.
 
 ## 2.1.0 — 2026-08-01
 

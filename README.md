@@ -6,7 +6,13 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 
 [ქართული დოკუმენტაცია](README.ka.md)
 
-## What v2.1 adds
+## What v2.2 adds
+
+- Bilingual Georgian/English desktop GUI with a double-click Windows launcher.
+- Output-folder selection before every job, including direct Desktop saves.
+- Structured progress, detailed logs, safe cancellation, environment check/repair, result opening, and AI-task copy actions.
+
+## Core package capabilities
 
 - One auto-detect command: `contextpack.ps1`.
 - Atomic package builds: failed jobs never replace a valid package.
@@ -43,6 +49,10 @@ Activation of `.venv` is not required. Setup creates the local environment, inst
 
 Double-click `Start-ContextPack-GUI.cmd`. The GUI uses the existing local `.venv` and does not require an additional framework or package.
 
+![ContextPack Desktop in English](docs/images/contextpack-gui-en.png)
+
+[View the Georgian interface](docs/images/contextpack-gui-ka.png)
+
 Use the language selector in the upper-right corner to switch the complete interface between **ქართული** and **English**. The selected language also controls dialogs, progress messages, validation errors, and the copied AI task.
 
 The first screen is intentionally simple:
@@ -53,6 +63,8 @@ The first screen is intentionally simple:
 4. open the result folder or copy the prepared AI task after completion.
 
 The window also provides environment check/repair actions, an honest stage-based progress display, cooperative cancellation, and detailed logs. Cancellation waits for the current safe operation boundary so that Excel can close and an existing valid package is not damaged. See [the GUI guide](docs/GUI_GUIDE.md).
+
+Want to verify the workflow with a tiny safe file first? Follow the [60-second demo](docs/QUICK_DEMO.md) and compare the result with the [checked-in expected Markdown](examples/demo-output/sample.md).
 
 ## Recommended command
 
