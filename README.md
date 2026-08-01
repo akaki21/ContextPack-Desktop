@@ -39,6 +39,21 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 Activation of `.venv` is not required. Setup creates the local environment, installs only the document/OCR dependencies used by ContextPack, detects or installs Tesseract, and verifies the official English, Georgian, and orientation models.
 
+## Desktop GUI
+
+Double-click `Start-ContextPack-GUI.cmd`. The GUI uses the existing local `.venv` and does not require an additional framework or package.
+
+Use the language selector in the upper-right corner to switch the complete interface between **ქართული** and **English**. The selected language also controls dialogs, progress messages, validation errors, and the copied AI task.
+
+The first screen is intentionally simple:
+
+1. choose a file;
+2. keep the recommended `Auto` and Excel `Both` settings unless you need something specific;
+3. click **Start processing** and choose where the result should be saved (for example, Desktop);
+4. open the result folder or copy the prepared AI task after completion.
+
+The window also provides environment check/repair actions, an honest stage-based progress display, cooperative cancellation, and detailed logs. Cancellation waits for the current safe operation boundary so that Excel can close and an existing valid package is not damaged. See [the GUI guide](docs/GUI_GUIDE.md).
+
 ## Recommended command
 
 ```powershell
@@ -159,6 +174,7 @@ The earlier commands remain available:
 .\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both
 # Other choices: -RenderMode Workbook or -RenderMode AutoFit
 .\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both -MaxAutoFitColumns 80
+.\contextpack.ps1 ".\input\workbook.xlsx" -OutputDirectory ([Environment]::GetFolderPath('Desktop'))
 ```
 
 ## Privacy

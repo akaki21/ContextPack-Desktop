@@ -4,6 +4,16 @@ All notable user-facing changes to ContextPack Desktop are recorded here.
 
 [ქართული ვერსია](CHANGELOG.ka.md)
 
+## 2.2.0 — 2026-08-01
+
+- Added a dependency-free Tkinter desktop GUI and double-click Windows launcher.
+- Added structured UTF-8 job events, stage-based progress, detailed logs, and cooperative cancellation.
+- Added environment check/repair, result-folder opening, and AI-task copy actions.
+- Added a destination-folder prompt before every GUI conversion and portable `-OutputDirectory` routing across the backend.
+- Added live Georgian/English localization for the complete GUI, including dialogs, validation, progress messages, and copied AI tasks.
+- Exposed the Excel AutoFit column limit through the main router.
+- Added GUI core tests and beginner-focused English/Georgian guides.
+
 ## 2.1.0 — 2026-08-01
 
 - Added Excel render modes: `Workbook`, `AutoFit`, and the default `Both`.

@@ -1,6 +1,7 @@
 ﻿param(
     [Parameter(Mandatory = $true, Position = 0)]
-    [string]$InputFile
+    [string]$InputFile,
+    [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -9,7 +10,7 @@ $root = $PSScriptRoot
 $python = Get-ContextPackPython
 $null = Enable-ContextPackOcr
 $inputPath = (Resolve-Path -LiteralPath $InputFile).Path
-$outputDir = Join-Path $root 'output'
+$outputDir = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) { Join-Path $root 'output' } else { [System.IO.Path]::GetFullPath($OutputDirectory) }
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 $ocrPdf = Join-Path $outputDir ($baseName + '_ocr.pdf')
 $markdown = Join-Path $outputDir ($baseName + '.md')

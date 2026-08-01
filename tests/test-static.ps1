@@ -18,6 +18,14 @@ if ($excelScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Aut
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
 if ($excelScript -notmatch "RenderMode\s*=\s*'Both'") { $failures += 'Safe dual Excel rendering is not the default.' }
 if ($excelScript -notmatch 'Workbooks\.Open\(\$inputPath,\s*0,\s*\$true\)') { $failures += 'Excel workbook is not opened read-only.' }
+$contextScript = Get-Content -LiteralPath (Join-Path $root 'contextpack.ps1') -Raw -Encoding UTF8
+if ($contextScript -notmatch 'MaxAutoFitColumns') { $failures += 'The main router does not expose the AutoFit width limit.' }
+if ($contextScript -notmatch 'OutputDirectory') { $failures += 'The main router does not expose a custom output directory.' }
+$guiRunner = Get-Content -LiteralPath (Join-Path $root 'contextpack-gui-runner.ps1') -Raw -Encoding UTF8
+if ($guiRunner -notmatch 'contextpack_event') { $failures += 'The GUI runner does not emit structured events.' }
+if ($guiRunner -notmatch 'OperationCanceledException') { $failures += 'The GUI runner does not support cooperative cancellation.' }
+$commonScript = Get-Content -LiteralPath (Join-Path $root 'common.ps1') -Raw -Encoding UTF8
+if ($commonScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
 
 if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

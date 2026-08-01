@@ -1,7 +1,8 @@
 ﻿param(
     [Parameter(Mandatory = $true, Position = 0)][string]$InputFile,
     [ValidateRange(96, 300)][int]$Dpi = 180,
-    [switch]$Ocr
+    [switch]$Ocr,
+    [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -14,7 +15,7 @@ if (-not (Test-Path -LiteralPath $inputPath -PathType Leaf)) { throw 'Input must
 if ([System.IO.Path]::GetExtension($inputPath).ToLowerInvariant() -ne '.pdf') { throw 'This script accepts PDF files only.' }
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
-$build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_pdf_package')
+$build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_pdf_package') -OutputDirectory $OutputDirectory
 try {
     $packageDir = $build.BuildPath
     $pagesDir = Join-Path $packageDir 'pages'

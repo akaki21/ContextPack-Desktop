@@ -32,6 +32,21 @@ Set-ExecutionPolicy -Scope Process Bypass
 
 საჭიროა Windows 10/11, PowerShell 5.1+ და Python 3.10+. Microsoft Excel საჭიროა მხოლოდ Excel-ის PDF/PNG რენდერისთვის. `.venv`-ის გააქტიურება საჭირო არაა.
 
+## Desktop GUI
+
+ორჯერ დააწკაპუნე `Start-ContextPack-GUI.cmd` ფაილზე. GUI იყენებს უკვე არსებულ `.venv` გარემოს და დამატებითი framework ან ბიბლიოთეკა არ სჭირდება.
+
+ზედა მარჯვენა კუთხეში არსებული ენის გადამრთველით მთლიანი ინტერფეისი შეგიძლია შეცვალო **ქართული** და **English** ენებს შორის. არჩეული ენა ვრცელდება დიალოგებზე, პროგრესის შეტყობინებებზე, validation შეცდომებსა და დაკოპირებულ AI დავალებაზეც.
+
+პირველი გამოყენება ოთხი მარტივი ნაბიჯია:
+
+1. აირჩიე ფაილი;
+2. თუ განსაკუთრებული მოთხოვნა არ გაქვს, დატოვე რეკომენდებული `Auto` და Excel-ის `Both` რეჟიმები;
+3. დააჭირე დამუშავების დაწყებას და აირჩიე, სად შეინახოს შედეგი — მაგალითად Desktop-ზე;
+4. დასრულების შემდეგ გახსენი შედეგი ან დააკოპირე AI-სთვის გამზადებული დავალება.
+
+ფანჯარაში ასევე არის environment check/repair, ეტაპობრივი პროგრესი, უსაფრთხო Cancel და დეტალური ჟურნალი. Cancel მიმდინარე უსაფრთხო ოპერაციის საზღვარს ელოდება, რათა Excel სწორად დაიხუროს და უკვე არსებული კარგი პაკეტი არ დაზიანდეს. დეტალური ინსტრუქცია: [GUI სახელმძღვანელო](docs/GUI_GUIDE.ka.md).
+
 ## რეკომენდებული გამოყენება
 
 ```powershell
@@ -95,6 +110,7 @@ Auto რეჟიმი თვითონ განსაზღვრავს:
 .\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both
 # სხვა არჩევანი: -RenderMode Workbook ან -RenderMode AutoFit
 .\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both -MaxAutoFitColumns 80
+.\contextpack.ps1 ".\input\workbook.xlsx" -OutputDirectory ([Environment]::GetFolderPath('Desktop'))
 ```
 
 ## ინფორმაციის არევისგან დაცვა

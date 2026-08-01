@@ -2,6 +2,8 @@
 
 Every complete package is finalized only after all processing steps succeed.
 
+By default packages are written under the project `output` folder. GUI jobs ask for a destination before every run, and CLI callers can pass `-OutputDirectory`. Atomic temporary and final package paths remain inside the selected destination.
+
 Common files:
 
 - `manifest.json` — machine-readable provenance, SHA-256 source identity, outputs, settings, and warnings.

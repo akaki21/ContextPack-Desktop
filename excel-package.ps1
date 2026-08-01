@@ -2,7 +2,8 @@
     [Parameter(Mandatory = $true, Position = 0)][string]$InputFile,
     [ValidateRange(96, 300)][int]$Dpi = 180,
     [ValidateSet('Workbook', 'AutoFit', 'Both')][string]$RenderMode = 'Both',
-    [ValidateRange(10, 200)][int]$MaxAutoFitColumns = 60
+    [ValidateRange(10, 200)][int]$MaxAutoFitColumns = 60,
+    [string]$OutputDirectory
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,7 +18,7 @@ $extension = [System.IO.Path]::GetExtension($inputPath).ToLowerInvariant()
 if ($extension -notin @('.xlsx', '.xlsm', '.xltx', '.xltm')) { throw 'Supported formats: .xlsx, .xlsm, .xltx, .xltm' }
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
-$build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_excel_package')
+$build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_excel_package') -OutputDirectory $OutputDirectory
 
 function Invoke-ExcelRetry {
     param([Parameter(Mandatory = $true)][scriptblock]$Action)
