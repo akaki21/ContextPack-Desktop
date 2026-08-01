@@ -14,4 +14,4 @@ Read the Markdown first and build a content map. Use the source PDF and selected
 Use workbook-info.md to identify relevant sheets and ranges. Check formulas.md for calculation logic and values.md for results. Read print-layout-report.json before using rendered pages. Treat workbook-layout and the original workbook as authoritative; auto-layout is only a convenience view. Goal: [goal]. Scope: [sheets/ranges/period]. Desired output: [format].
 ```
 
-For large files, naming exact pages, sheets, or ranges saves the most time and tokens.
+For large files, naming exact pages, sheets, or ranges saves the most time and tokens. When the package is locally accessible, give Codex its folder path and the task instead of attaching every generated PDF/PNG page.

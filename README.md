@@ -6,7 +6,7 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 
 [ქართული დოკუმენტაცია](README.ka.md)
 
-## What v2 adds
+## What v2.1 adds
 
 - One auto-detect command: `contextpack.ps1`.
 - Atomic package builds: failed jobs never replace a valid package.
@@ -61,6 +61,12 @@ Optional modes:
 .\contextpack.ps1 ".\input\workbook.xlsx" -ExcelRenderMode Both
 ```
 
+- `Auto` (default): detects whether a PDF needs OCR; creates a complete Excel package; OCRs images; converts other supported files to Markdown.
+- `Fast`: converts PDF or Excel directly to Markdown without building the complete visual package.
+- `Full`: builds the complete PDF or Excel package without forcing OCR.
+- `Ocr`: forces Georgian + English OCR for a PDF; images always use OCR.
+- `ExcelRenderMode Both` (default): creates both Excel visual layouts. Choose `Workbook` or `AutoFit` to create only one.
+
 ## PDF package
 
 ```text
@@ -85,9 +91,12 @@ document_pdf_package/
 workbook_excel_package/
 ├── manifest.json
 ├── quality-report.md
+├── AI-HANDOFF.md
+├── AI-HANDOFF.ka.md
 ├── workbook-info.md
 ├── values.md                 # lightweight index
 ├── formulas.md               # lightweight index
+├── excel-metrics.json
 ├── workbook.xlsx
 ├── sheets-data/
 │   ├── 01-Summary/values.md
@@ -105,7 +114,9 @@ workbook_excel_package/
 
 Large rectangular ranges automatically switch to sparse `Cell | Value` output instead of creating enormous empty Markdown tables. The quality report flags external links, cached formula errors, sparse sheets, and other structural warnings.
 
-The default `Both` render mode creates two independent views. `workbook-layout` preserves the author's print settings and is authoritative. `auto-layout` infers a print area from populated cells, fits it to one page wide with unlimited page height, and is only a convenience view. AutoFit is skipped for hidden/empty sheets, very wide populated ranges, manual page breaks, or drawing objects such as charts and images. Every decision is recorded in `print-layout-report.json`; the source workbook is opened read-only and never saved.
+The default `Both` render mode creates two independent views. `workbook-layout` preserves the author's print settings and is authoritative. `auto-layout` infers a print area from populated cells, fits it to one page wide with unlimited page height, and is only a convenience view. AutoFit is skipped for hidden/empty sheets, populated ranges wider than 60 columns by default, manual page breaks, or drawing objects such as charts and images. Merged cells produce a visual-review warning. Every decision is recorded in `print-layout-report.json`; the source workbook is opened read-only and never saved.
+
+`Both` approximately doubles the visual-render storage because it writes a PDF and PNG page set for each layout. Use `-ExcelRenderMode Workbook` when you want the smaller authoritative visual package. The direct `excel-package.ps1` command also accepts `-MaxAutoFitColumns` from 10 to 200; its default is 60.
 
 Macro-enabled workbooks are opened read-only with `AutomationSecurity = ForceDisable` and Excel events disabled. ContextPack never executes workbook macros intentionally.
 
@@ -124,6 +135,18 @@ See [the package format](docs/PACKAGE_FORMAT.md).
 
 See [AI-HANDOFF.md](AI-HANDOFF.md).
 
+## Which files to give an AI
+
+When Codex is running on the same computer, provide the package folder path and your goal. Codex can open only the files needed for the task; you do not need to attach every generated file.
+
+For an external AI or a manual upload:
+
+- Start with `manifest.json` and `quality-report.md`.
+- For PDF work, add the main Markdown and `page-text.md`. Add the source PDF or selected PNG pages only for exact visual checks.
+- For Excel work, add `workbook-info.md`, `values.md`, `formulas.md`, `print-layout-report.json`, and only the relevant files under `sheets-data/`.
+- Add the original workbook and selected `workbook-layout` pages when exact formulas, formatting, or page layout must be verified.
+- Use `auto-layout` only as a reading aid. Do not upload both complete PNG sets unless the task actually requires a full visual comparison.
+
 ## Individual commands
 
 The earlier commands remain available:
@@ -135,6 +158,7 @@ The earlier commands remain available:
 .\pdf-package.ps1 ".\input\document.pdf" -Ocr
 .\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both
 # Other choices: -RenderMode Workbook or -RenderMode AutoFit
+.\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both -MaxAutoFitColumns 80
 ```
 
 ## Privacy
@@ -152,3 +176,5 @@ Processing is local. ContextPack does not upload documents. `.venv`, `input`, ge
 ## License
 
 [MIT](LICENSE)
+
+Release history: [CHANGELOG.md](CHANGELOG.md)
