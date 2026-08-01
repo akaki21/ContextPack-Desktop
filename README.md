@@ -19,7 +19,7 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 - Source SHA-256 identity and collision-safe package names.
 - Page-aware PDF text with source-page markers.
 - Per-sheet Excel values/formulas with sparse output for extreme dimensions.
-- Dual Excel rendering: authoritative workbook print layout plus a guarded one-page-wide AutoFit view.
+- Dual Excel rendering: authoritative workbook print layout plus a guarded, readability-aware AutoFit view.
 - Machine-readable `manifest.json` and human-readable `quality-report.md`.
 - Excel macros and workbook events force-disabled before programmatic opening.
 - Verified OCR model downloads pinned to an official tessdata commit and SHA-256 checksums.
@@ -145,7 +145,7 @@ workbook_excel_package/
 
 Large rectangular ranges automatically switch to sparse `Cell | Value` output instead of creating enormous empty Markdown tables. The quality report flags external links, cached formula errors, sparse sheets, and other structural warnings.
 
-The default `Both` render mode creates two independent views. `workbook-layout` preserves the author's print settings and is authoritative. `auto-layout` infers a print area from populated cells, fits it to one page wide with unlimited page height, and is only a convenience view. AutoFit is skipped for hidden/empty sheets, populated ranges wider than 60 columns by default, manual page breaks, or drawing objects such as charts and images. Merged cells produce a visual-review warning. Every decision is recorded in `print-layout-report.json`; the source workbook is opened read-only and never saved.
+The default `Both` render mode creates two independent views. `workbook-layout` preserves the author's print settings and is authoritative. `auto-layout` infers a print area from populated cells and adaptively splits wide tables across horizontal pages (roughly eight populated columns per page) instead of shrinking every column onto one unreadable page. Page height remains unlimited. AutoFit is skipped for hidden/empty sheets, populated ranges wider than 60 columns by default, manual page breaks, or drawing objects such as charts and images. Merged cells produce a visual-review warning. Every decision is recorded in `print-layout-report.json`; the source workbook is opened read-only and never saved.
 
 `Both` approximately doubles the visual-render storage because it writes a PDF and PNG page set for each layout. Use `-ExcelRenderMode Workbook` when you want the smaller authoritative visual package. The direct `excel-package.ps1` command also accepts `-MaxAutoFitColumns` from 10 to 200; its default is 60.
 

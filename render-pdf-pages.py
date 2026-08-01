@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("--dpi", type=int, default=180)
     parser.add_argument("--page-text")
     parser.add_argument("--metrics")
+    parser.add_argument("--max-pages", type=int, default=0)
     args = parser.parse_args()
 
     if not 72 <= args.dpi <= 600:
@@ -29,6 +30,24 @@ def main() -> None:
 
     document = pdfium.PdfDocument(str(source))
     page_count = len(document)
+    if args.max_pages < 0:
+        document.close()
+        raise SystemExit("Maximum page count cannot be negative")
+    if args.max_pages and page_count > args.max_pages:
+        payload = {
+            "source": source.name,
+            "page_count": page_count,
+            "rendered_pages": 0,
+            "render_skipped": True,
+            "max_pages": args.max_pages,
+            "reason": f"PDF has {page_count} pages, exceeding the safety limit of {args.max_pages} pages.",
+            "pages": [],
+        }
+        if args.metrics:
+            Path(args.metrics).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        document.close()
+        print(payload["reason"] + " PNG rendering was skipped; the source PDF was preserved.")
+        return
     digits = max(3, len(str(page_count)))
     scale = args.dpi / 72.0
     page_text_parts = [f"# Page-aware text — {source.name}\n"]
@@ -76,6 +95,9 @@ def main() -> None:
         payload = {
             "source": source.name,
             "page_count": page_count,
+            "rendered_pages": page_count,
+            "render_skipped": False,
+            "max_pages": args.max_pages or None,
             "total_characters": sum(int(item["characters"]) for item in metrics),
             "sparse_pages": [int(item["page"]) for item in metrics if item["sparse_text"]],
             "pages": metrics,
