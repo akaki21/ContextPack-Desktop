@@ -14,6 +14,10 @@ if (($sourceText -join "`n") -match 'C:\\Users\\') { $failures += 'A user-specif
 $excelScript = Get-Content -LiteralPath (Join-Path $root 'excel-package.ps1') -Raw -Encoding UTF8
 if ($excelScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
 if ($excelScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
+if ($excelScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Automatic external-link updates are not disabled.' }
+if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
+if ($excelScript -notmatch "RenderMode\s*=\s*'Both'") { $failures += 'Safe dual Excel rendering is not the default.' }
+if ($excelScript -notmatch 'Workbooks\.Open\(\$inputPath,\s*0,\s*\$true\)') { $failures += 'Excel workbook is not opened read-only.' }
 
 if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

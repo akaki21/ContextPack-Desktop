@@ -1,4 +1,4 @@
-﻿$script:ContextPackVersion = '2.0.0'
+﻿$script:ContextPackVersion = '2.1.0'
 
 function Get-ContextPackPython {
     $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'

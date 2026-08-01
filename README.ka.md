@@ -13,6 +13,7 @@ ContextPack Desktop გარდაქმნის PDF-ს, სკანს, Exc
 - SHA-256-ით წყაროს იდენტიფიკაცია და ერთსახელიანი ფაილების უსაფრთხო გაყოფა;
 - PDF-ის გვერდობრივ ტექსტში საწყისი გვერდის ნომრები;
 - Excel-ის ცალკეულ ფურცლებად დაყოფილი values/formulas;
+- Excel-ის ორმაგი რენდერი: ავტორის print layout და უსაფრთხო, ერთ გვერდის სიგანეზე მორგებული AutoFit ხედი;
 - დიდი დიაპაზონის sparse output;
 - `manifest.json` და `quality-report.md`;
 - Excel-ის მაკროებისა და events-ის იძულებით გამორთვა;
@@ -50,6 +51,7 @@ Auto რეჟიმი თვითონ განსაზღვრავს:
 .\contextpack.ps1 ".\input\document.pdf" -Mode Fast
 .\contextpack.ps1 ".\input\document.pdf" -Mode Full -Dpi 240
 .\contextpack.ps1 ".\input\scan.pdf" -Mode Ocr
+.\contextpack.ps1 ".\input\workbook.xlsx" -ExcelRenderMode Both
 ```
 
 ## PDF-ის პაკეტი
@@ -68,10 +70,21 @@ Auto რეჟიმი თვითონ განსაზღვრავს:
 - მსუბუქი `values.md` და `formulas.md` ინდექსები;
 - `sheets-data`-ში თითოეული ფურცლის ცალკე values/formulas;
 - ორიგინალი workbook;
-- დარენდერებული PDF/PNG;
+- `workbook-layout` PDF/PNG — ავტორის არსებული ბეჭდვის პარამეტრებით;
+- `auto-layout` PDF/PNG — ერთ გვერდის სიგანეზე მორგებული დამხმარე ხედი;
+- `print-layout-report.json` — თითოეულ ფურცელზე მიღებული გადაწყვეტილება;
 - external link-ების, formula error-ებისა და სხვა რისკების quality report.
 
 ძალიან დიდი დიაპაზონი sparse ფორმატში ინახება და აღარ ქმნის უზარმაზარ ცარიელ Markdown ცხრილს. Macro-enabled workbook იხსნება read-only რეჟიმში, მაკროები იძულებით გათიშულია და Excel events არ სრულდება.
+
+ნაგულისხმევი `Both` რეჟიმი ორივე ხედს ქმნის. სიზუსტისთვის მთავარი არის `workbook-layout` და ორიგინალი Excel. `auto-layout` მხოლოდ წაკითხვის გასამარტივებელი ხედია: მონაცემებით შევსებულ დიაპაზონს ერთ გვერდის სიგანეზე ატევს, ხოლო სიმაღლეს არ ზღუდავს. AutoFit არ გამოიყენება დამალულ/ცარიელ ფურცელზე, ზედმეტად ფართო დიაპაზონზე, manual page break-ის ან chart/image/drawing object-ის არსებობისას. წყარო read-only იხსნება და არასოდეს ინახება.
+
+ცალკე ბრძანება:
+
+```powershell
+.\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both
+# სხვა არჩევანი: -RenderMode Workbook ან -RenderMode AutoFit
+```
 
 ## ინფორმაციის არევისგან დაცვა
 

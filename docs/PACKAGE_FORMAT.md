@@ -1,4 +1,4 @@
-# ContextPack package format v1
+# ContextPack package format v2.1
 
 Every complete package is finalized only after all processing steps succeed.
 
@@ -22,7 +22,11 @@ Excel packages additionally contain:
 - `workbook-info.md`;
 - lightweight `values.md` and `formulas.md` indexes;
 - per-sheet files under `sheets-data/NN-sheet-name/`;
-- rendered workbook PDF and PNG pages;
+- authoritative PDF/PNG under `rendered-sheets/workbook-layout/` when requested;
+- guarded convenience PDF/PNG under `rendered-sheets/auto-layout/` when requested;
+- `print-layout-report.json` with per-sheet AutoFit decisions and preserved settings;
 - `excel-metrics.json`.
+
+`Both` is the default Excel render mode. AutoFit uses populated-cell bounds, fits to one page wide with unlimited page height, and skips risky sheets (hidden/empty, over the width limit, manual page breaks, or drawing objects). The source workbook is opened read-only, with macros, events, and automatic link updates disabled, and is never saved.
 
 When an existing package has the same source hash, a successful rebuild replaces it. A different source with the same base name receives an eight-character SHA-256 suffix, preventing accidental mixing.

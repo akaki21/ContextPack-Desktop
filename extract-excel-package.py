@@ -90,6 +90,10 @@ def main() -> None:
         value_cells_all = populated_cells(value_ws)
         max_row = max((cell.row for cell in formula_cells_all), default=0)
         max_col = max((cell.column for cell in formula_cells_all), default=0)
+        min_row = min((cell.row for cell in formula_cells_all), default=0)
+        min_col = min((cell.column for cell in formula_cells_all), default=0)
+        populated_row_span = max_row - min_row + 1 if max_row else 0
+        populated_col_span = max_col - min_col + 1 if max_col else 0
         rectangular_size = max_row * max_col
         folder_name = safe_sheet_folder(index, formula_ws.title)
         sheet_dir = sheets_root / folder_name
@@ -171,6 +175,10 @@ def main() -> None:
                 "populated_cells": len(formula_cells_all),
                 "max_row": max_row,
                 "max_column": max_col,
+                "min_row": min_row,
+                "min_column": min_col,
+                "populated_row_span": populated_row_span,
+                "populated_column_span": populated_col_span,
                 "output_mode": "sparse" if use_sparse else "rectangular",
                 "formulas": len(formulas),
                 "cached_formula_errors": len(cached_errors),
@@ -178,6 +186,7 @@ def main() -> None:
                 "hidden_columns": hidden_cols,
                 "charts": charts,
                 "images": images,
+                "merged_ranges": len(formula_ws.merged_cells.ranges),
             }
         )
 

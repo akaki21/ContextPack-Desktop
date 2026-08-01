@@ -5,4 +5,4 @@
 - ტექსტური შეჯამება: მთავარი `.md`.
 - PDF-ის შემოწმება: საწყისი/OCR PDF.
 - ვიზუალური შემოწმება: მხოლოდ საჭირო PNG გვერდები.
-- Excel: `workbook-info.md`, `formulas.md`, `values.md`, შემდეგ მხოლოდ საჭირო `sheets-data` ფურცელი; ზუსტი შემოწმებისთვის — workbook.
+- Excel: `workbook-info.md`, `formulas.md`, `values.md`, `print-layout-report.json`, შემდეგ მხოლოდ საჭირო `sheets-data` ფურცელი; ზუსტი შემოწმებისთვის — `workbook-layout`/ორიგინალი, სწრაფი წაკითხვისთვის — `auto-layout`.

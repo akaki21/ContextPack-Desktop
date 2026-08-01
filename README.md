@@ -13,6 +13,7 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 - Source SHA-256 identity and collision-safe package names.
 - Page-aware PDF text with source-page markers.
 - Per-sheet Excel values/formulas with sparse output for extreme dimensions.
+- Dual Excel rendering: authoritative workbook print layout plus a guarded one-page-wide AutoFit view.
 - Machine-readable `manifest.json` and human-readable `quality-report.md`.
 - Excel macros and workbook events force-disabled before programmatic opening.
 - Verified OCR model downloads pinned to an official tessdata commit and SHA-256 checksums.
@@ -57,6 +58,7 @@ Optional modes:
 .\contextpack.ps1 ".\input\document.pdf" -Mode Fast
 .\contextpack.ps1 ".\input\document.pdf" -Mode Full -Dpi 240
 .\contextpack.ps1 ".\input\scan.pdf" -Mode Ocr
+.\contextpack.ps1 ".\input\workbook.xlsx" -ExcelRenderMode Both
 ```
 
 ## PDF package
@@ -91,12 +93,19 @@ workbook_excel_package/
 │   ├── 01-Summary/values.md
 │   ├── 01-Summary/formulas.md
 │   └── 02-Costs/...
+├── print-layout-report.json
 └── rendered-sheets/
-    ├── workbook.pdf
-    └── pages/page-001.png ...
+    ├── workbook-layout/
+    │   ├── workbook.pdf
+    │   └── pages/page-001.png ...
+    └── auto-layout/
+        ├── workbook.pdf
+        └── pages/page-001.png ...
 ```
 
 Large rectangular ranges automatically switch to sparse `Cell | Value` output instead of creating enormous empty Markdown tables. The quality report flags external links, cached formula errors, sparse sheets, and other structural warnings.
+
+The default `Both` render mode creates two independent views. `workbook-layout` preserves the author's print settings and is authoritative. `auto-layout` infers a print area from populated cells, fits it to one page wide with unlimited page height, and is only a convenience view. AutoFit is skipped for hidden/empty sheets, very wide populated ranges, manual page breaks, or drawing objects such as charts and images. Every decision is recorded in `print-layout-report.json`; the source workbook is opened read-only and never saved.
 
 Macro-enabled workbooks are opened read-only with `AutomationSecurity = ForceDisable` and Excel events disabled. ContextPack never executes workbook macros intentionally.
 
@@ -124,7 +133,8 @@ The earlier commands remain available:
 .\ocr-image.ps1 ".\input\page.png"
 .\ocr-and-convert.ps1 ".\input\scan.pdf"
 .\pdf-package.ps1 ".\input\document.pdf" -Ocr
-.\excel-package.ps1 ".\input\workbook.xlsx"
+.\excel-package.ps1 ".\input\workbook.xlsx" -RenderMode Both
+# Other choices: -RenderMode Workbook or -RenderMode AutoFit
 ```
 
 ## Privacy

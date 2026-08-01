@@ -1,7 +1,8 @@
 ﻿param(
     [Parameter(Mandatory = $true, Position = 0)][string]$InputFile,
     [ValidateSet('Auto', 'Fast', 'Full', 'Ocr')][string]$Mode = 'Auto',
-    [ValidateRange(96, 300)][int]$Dpi = 180
+    [ValidateRange(96, 300)][int]$Dpi = 180,
+    [ValidateSet('Workbook', 'AutoFit', 'Both')][string]$ExcelRenderMode = 'Both'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -29,7 +30,7 @@ if ($extension -eq '.pdf') {
 
 if ($extension -in @('.xlsx', '.xlsm', '.xltx', '.xltm')) {
     if ($Mode -eq 'Fast') { & (Join-Path $root 'convert-to-markdown.ps1') $inputPath }
-    else { & (Join-Path $root 'excel-package.ps1') $inputPath -Dpi $Dpi }
+    else { & (Join-Path $root 'excel-package.ps1') $inputPath -Dpi $Dpi -RenderMode $ExcelRenderMode }
     return
 }
 
