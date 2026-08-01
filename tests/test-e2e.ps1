@@ -2,6 +2,7 @@ param(
     [string]$WorkDirectory,
     [switch]$RequireExcel,
     [switch]$SkipOcr,
+    [switch]$SkipPdfOcr,
     [switch]$KeepArtifacts
 )
 
@@ -74,15 +75,17 @@ try {
         $imageText = Get-Content -LiteralPath (Join-Path $output 'sample-scan.txt') -Raw -Encoding UTF8
         Assert-True ($imageText -match 'CONTEXT\s+PACK\s+OCR') 'Image OCR did not recover the expected text.'
 
-        # Scanned PDF OCR through OCRmyPDF and the complete PDF packaging path.
-        $ocrOutput = Join-Path $work 'ocr-output'
-        & (Join-Path $root 'contextpack.ps1') (Join-Path $fixtures 'sample-scan.pdf') -Mode Ocr -Dpi 96 -OutputDirectory $ocrOutput
-        $ocrPackage = Join-Path $ocrOutput 'sample-scan_pdf_package'
-        $ocrManifest = Read-JsonFile (Join-Path $ocrPackage 'manifest.json')
-        Assert-True ([bool]$ocrManifest.settings.ocr) 'OCR PDF manifest did not record OCR.'
-        Assert-True (Test-Path -LiteralPath (Join-Path $ocrPackage 'sample-scan_ocr.pdf') -PathType Leaf) 'Searchable OCR PDF is missing.'
-        $ocrMarkdown = Get-Content -LiteralPath (Join-Path $ocrPackage 'sample-scan.md') -Raw -Encoding UTF8
-        Assert-True ($ocrMarkdown -match 'CONTEXT\s+PACK\s+OCR') 'OCR PDF Markdown did not recover the expected text.'
+        if (-not $SkipPdfOcr) {
+            # Scanned PDF OCR through OCRmyPDF and the complete PDF packaging path.
+            $ocrOutput = Join-Path $work 'ocr-output'
+            & (Join-Path $root 'contextpack.ps1') (Join-Path $fixtures 'sample-scan.pdf') -Mode Ocr -Dpi 96 -OutputDirectory $ocrOutput
+            $ocrPackage = Join-Path $ocrOutput 'sample-scan_pdf_package'
+            $ocrManifest = Read-JsonFile (Join-Path $ocrPackage 'manifest.json')
+            Assert-True ([bool]$ocrManifest.settings.ocr) 'OCR PDF manifest did not record OCR.'
+            Assert-True (Test-Path -LiteralPath (Join-Path $ocrPackage 'sample-scan_ocr.pdf') -PathType Leaf) 'Searchable OCR PDF is missing.'
+            $ocrMarkdown = Get-Content -LiteralPath (Join-Path $ocrPackage 'sample-scan.md') -Raw -Encoding UTF8
+            Assert-True ($ocrMarkdown -match 'CONTEXT\s+PACK\s+OCR') 'OCR PDF Markdown did not recover the expected text.'
+        }
     }
 
     Write-Host "ContextPack E2E tests passed: $work" -ForegroundColor Green
