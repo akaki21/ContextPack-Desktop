@@ -39,6 +39,10 @@ class InstallerSourceTests(unittest.TestCase):
             self.assertTrue(path.is_file(), f"Missing installer asset: {relative}")
             self.assertGreater(path.stat().st_size, 0)
 
+    def test_portable_release_includes_python_application_package(self) -> None:
+        source = (ROOT / "installer" / "build-release.ps1").read_text(encoding="utf-8-sig")
+        self.assertIn("'contextpack'", source)
+
 
 if __name__ == "__main__":
     unittest.main()
