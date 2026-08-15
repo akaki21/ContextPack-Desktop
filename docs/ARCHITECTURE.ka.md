@@ -40,6 +40,7 @@
 - `contextpack/excel/markdown.py` — rectangular და sparse Markdown table-ების შექმნა და მნიშვნელობების escaping.
 - `contextpack/excel/workbook.py` — sheet folder-ის უსაფრთხო სახელი და workbook calculation mode.
 - `contextpack/excel/analysis.py` — worksheet bounds, formulas/cached errors, sparse mode და layout-risk metrics ერთ immutable `SheetAnalysis` მოდელში.
+- `contextpack/excel/reporting.py` — sheet Markdown ფაილები, workbook indexes, quality report და renderer-ის `excel-metrics.json`.
 
 `layout.py` მხოლოდ widget-ებს ქმნის და application-ის callback-ებს უკავშირებს. ფაილის დამუშავება, subprocess და Cancel ლოგიკა მასში განზრახ არ არის, რათა ვიზუალური განლაგება processing behavior-ს არ შეერიოს.
 
