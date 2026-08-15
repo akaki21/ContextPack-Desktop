@@ -23,6 +23,12 @@ if ($excelScript -notmatch 'Workbooks\.Open\(\$inputPath,\s*0,\s*\$true\)') { $f
 $contextScript = Get-Content -LiteralPath (Join-Path $root 'contextpack.ps1') -Raw -Encoding UTF8
 if ($contextScript -notmatch 'MaxAutoFitColumns') { $failures += 'The main router does not expose the AutoFit width limit.' }
 if ($contextScript -notmatch 'OutputDirectory') { $failures += 'The main router does not expose a custom output directory.' }
+$routingScriptPath = Join-Path $root 'contextpack-routing.ps1'
+. $routingScriptPath
+if ((Get-ContextPackInputType 'sample.PDF') -ne 'Pdf') { $failures += 'PDF routing is not case-insensitive.' }
+if ((Get-ContextPackInputType 'sample.XLSM') -ne 'Excel') { $failures += 'Excel routing does not recognize macro-enabled workbooks.' }
+if ((Get-ContextPackInputType 'sample.WEBP') -ne 'Image') { $failures += 'Image routing does not recognize WebP.' }
+if ((Get-ContextPackInputType 'sample.docx') -ne 'Document') { $failures += 'Generic document routing is unavailable.' }
 $guiRunner = Get-Content -LiteralPath (Join-Path $root 'contextpack-gui-runner.ps1') -Raw -Encoding UTF8
 if ($guiRunner -notmatch 'contextpack_event') { $failures += 'The GUI runner does not emit structured events.' }
 if ($guiRunner -notmatch 'OperationCanceledException') { $failures += 'The GUI runner does not support cooperative cancellation.' }

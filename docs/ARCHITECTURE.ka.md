@@ -17,6 +17,7 @@
 - `contextpack_gui.py` — GUI-ის მიმდინარე Python შესასვლელი წერტილი.
 - `contextpack-gui-runner.ps1` — GUI-სა და დამუშავების სკრიპტებს შორის საზღვარი.
 - `contextpack.ps1` — command-line dispatcher, რომელიც processor-ს ირჩევს.
+- `contextpack-routing.ps1` — input-ის ტიპის ამოცნობა და PDF/Excel/Image/Document processing route-ები.
 
 ## Python-ის გამოყოფილი საფუძველი
 
@@ -44,6 +45,8 @@
 - Excel: workbook-ის უსაფრთხოდ გახსნა → values/formulas extraction → layout diagnostics → PDF/PNG render → quality report და manifest.
 - Image: ქართული და ინგლისური OCR → ტექსტური შედეგი.
 - სხვა დოკუმენტი: MarkItDown-ის საშუალებით Markdown conversion.
+
+Root-level `contextpack.ps1` სტაბილური command-line entry point-ია: ის პარამეტრებს იღებს, input-ს ამოწმებს და routing მოდულს იძახებს. ფორმატების კონკრეტული გადაწყვეტილებები `contextpack-routing.ps1`-შია თავმოყრილი, რათა მათი ცალ-ცალკე წაკითხვა და ტესტირება შეიძლებოდეს.
 
 ## უსაფრთხოების მნიშვნელოვანი წესები
 

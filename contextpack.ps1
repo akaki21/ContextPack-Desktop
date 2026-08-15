@@ -10,37 +10,8 @@
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
-$inputPath = (Resolve-Path -LiteralPath $InputFile).Path
-if (-not (Test-Path -LiteralPath $inputPath -PathType Leaf)) { throw 'Input must be a file.' }
-$extension = [System.IO.Path]::GetExtension($inputPath).ToLowerInvariant()
+. (Join-Path $root 'contextpack-routing.ps1')
 
-if ($extension -eq '.pdf') {
-    if ($Mode -eq 'Fast') { & (Join-Path $root 'convert-to-markdown.ps1') -InputFile $inputPath -OutputDirectory $OutputDirectory; return }
-    $useOcr = $Mode -eq 'Ocr'
-    if ($Mode -eq 'Auto') {
-        $python = Get-ContextPackPython
-        $inspectionJson = & $python (Join-Path $root 'inspect-pdf.py') $inputPath
-        if ($LASTEXITCODE -ne 0) { throw 'Could not inspect the PDF for OCR auto-detection.' }
-        $inspection = $inspectionJson | ConvertFrom-Json
-        $useOcr = [bool]$inspection.needs_ocr
-        Write-Host "Auto-detection: pages=$($inspection.page_count), OCR=$useOcr" -ForegroundColor Cyan
-    }
-    if ($useOcr) { & (Join-Path $root 'pdf-package.ps1') -InputFile $inputPath -Dpi $Dpi -Ocr -OutputDirectory $OutputDirectory }
-    else { & (Join-Path $root 'pdf-package.ps1') -InputFile $inputPath -Dpi $Dpi -OutputDirectory $OutputDirectory }
-    return
-}
-
-if ($extension -in @('.xlsx', '.xlsm', '.xltx', '.xltm')) {
-    if ($Mode -eq 'Fast') { & (Join-Path $root 'convert-to-markdown.ps1') -InputFile $inputPath -OutputDirectory $OutputDirectory }
-    else { & (Join-Path $root 'excel-package.ps1') -InputFile $inputPath -Dpi $Dpi -RenderMode $ExcelRenderMode -MaxAutoFitColumns $MaxAutoFitColumns -OutputDirectory $OutputDirectory }
-    return
-}
-
-if ($extension -in @('.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp')) {
-    & (Join-Path $root 'ocr-image.ps1') -InputFile $inputPath -OutputDirectory $OutputDirectory
-    return
-}
-
-if ($Mode -eq 'Ocr') { throw 'OCR mode supports PDF and image inputs only.' }
-& (Join-Path $root 'convert-to-markdown.ps1') -InputFile $inputPath -OutputDirectory $OutputDirectory
-return
+$inputPath = Resolve-ContextPackInput -InputFile $InputFile
+$inputType = Get-ContextPackInputType -InputPath $inputPath
+Invoke-ContextPackProcessor -Root $root -InputPath $inputPath -InputType $inputType -Mode $Mode -Dpi $Dpi -ExcelRenderMode $ExcelRenderMode -MaxAutoFitColumns $MaxAutoFitColumns -OutputDirectory $OutputDirectory
