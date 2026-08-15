@@ -7,11 +7,13 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import Mock, patch
 
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 
 from contextpack.excel.analysis import analyze_sheet
+from contextpack.excel.extractor import extract_workbook
 from contextpack.excel.cells import populated_cells
 from contextpack.excel.markdown import display, sparse_table
 from contextpack.excel.workbook import calculation_mode, safe_sheet_folder
@@ -67,6 +69,22 @@ class ExcelExtractorTests(unittest.TestCase):
         self.assertEqual(metrics["hidden_columns"], 1)
         self.assertEqual(metrics["merged_ranges"], 1)
         self.assertEqual(metrics["cached_formula_errors"], 1)
+
+    def test_extractor_closes_first_workbook_if_second_open_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = root / "sample.xlsx"
+            source.write_bytes(b"mock workbook")
+            formulas_book = Mock()
+
+            with patch(
+                "contextpack.excel.extractor.load_workbook",
+                side_effect=[formulas_book, RuntimeError("second open failed")],
+            ):
+                with self.assertRaisesRegex(RuntimeError, "second open failed"):
+                    extract_workbook(source, root / "output")
+
+            formulas_book.close.assert_called_once_with()
 
     def test_splits_values_and_formulas_per_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

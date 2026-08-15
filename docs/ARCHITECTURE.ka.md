@@ -41,6 +41,7 @@
 - `contextpack/excel/workbook.py` — sheet folder-ის უსაფრთხო სახელი და workbook calculation mode.
 - `contextpack/excel/analysis.py` — worksheet bounds, formulas/cached errors, sparse mode და layout-risk metrics ერთ immutable `SheetAnalysis` მოდელში.
 - `contextpack/excel/reporting.py` — sheet Markdown ფაილები, workbook indexes, quality report და renderer-ის `excel-metrics.json`.
+- `contextpack/excel/extractor.py` — workbook-ების გახსნა, sheet analysis/report orchestration და failure-ის დროს handle-ების გარანტირებული დახურვა.
 
 `layout.py` მხოლოდ widget-ებს ქმნის და application-ის callback-ებს უკავშირებს. ფაილის დამუშავება, subprocess და Cancel ლოგიკა მასში განზრახ არ არის, რათა ვიზუალური განლაგება processing behavior-ს არ შეერიოს.
 
