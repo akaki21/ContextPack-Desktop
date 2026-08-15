@@ -18,6 +18,10 @@
 - `contextpack-gui-runner.ps1` — GUI-სა და დამუშავების სკრიპტებს შორის საზღვარი.
 - `contextpack.ps1` — command-line dispatcher, რომელიც processor-ს ირჩევს.
 - `contextpack-routing.ps1` — input-ის ტიპის ამოცნობა და PDF/Excel/Image/Document processing route-ები.
+- `common.ps1` — ძველი processing scripts-ის სტაბილური compatibility loader.
+- `ContextPack.Environment.ps1` — Python/Tesseract-ის პოვნა და OCR გარემოს მომზადება.
+- `ContextPack.Build.ps1` — atomic build, უსაფრთხო replacement/rollback და cleanup საზღვრები.
+- `ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
 
 ## Python-ის გამოყოფილი საფუძველი
 
@@ -55,6 +59,8 @@ Root-level `contextpack.ps1` სტაბილური command-line entry poin
 - ნაწილობრივ შექმნილმა output-მა წინა კარგი პაკეტი არ უნდა ჩაანაცვლოს.
 - დროებითი build მხოლოდ მისთვის განკუთვნილი output root-ის შიგნით იშლება.
 - GUI cancellation უსაფრთხო ოპერაციის საზღვარზე სრულდება.
+
+`ContextPack.Build.ps1`-ის ცვლილებები მოწმდება ცალკე დროებით საქაღალდეში: ტესტი ადასტურებს source hash-ს, ერთსახელიანი სხვადასხვა წყაროების გაყოფას, იგივე source-ის package replacement-ს და unrelated output ფაილების შენარჩუნებას.
 
 ## რეფაქტორის მიმართულება
 

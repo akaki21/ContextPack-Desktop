@@ -33,7 +33,11 @@ $guiRunner = Get-Content -LiteralPath (Join-Path $root 'contextpack-gui-runner.p
 if ($guiRunner -notmatch 'contextpack_event') { $failures += 'The GUI runner does not emit structured events.' }
 if ($guiRunner -notmatch 'OperationCanceledException') { $failures += 'The GUI runner does not support cooperative cancellation.' }
 $commonScript = Get-Content -LiteralPath (Join-Path $root 'common.ps1') -Raw -Encoding UTF8
-if ($commonScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
+$buildScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.Build.ps1') -Raw -Encoding UTF8
+if ($buildScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
+foreach ($module in @('ContextPack.Environment.ps1', 'ContextPack.Build.ps1', 'ContextPack.Manifest.ps1')) {
+    if ($commonScript -notmatch [regex]::Escape($module)) { $failures += "The common compatibility loader does not include $module." }
+}
 $installerScript = Get-Content -LiteralPath (Join-Path $root 'installer\ContextPack.iss') -Raw -Encoding UTF8
 if ($installerScript -match 'createallsubdirs') { $failures += 'Installer creates excluded directories and can break first-run setup.' }
 if ($installerScript -notmatch 'PrivilegesRequired=lowest') { $failures += 'Installer is not configured for a per-user install.' }
