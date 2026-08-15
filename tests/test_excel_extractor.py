@@ -11,6 +11,7 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 
+from contextpack.excel.analysis import analyze_sheet
 from contextpack.excel.cells import populated_cells
 from contextpack.excel.markdown import display, sparse_table
 from contextpack.excel.workbook import calculation_mode, safe_sheet_folder
@@ -41,6 +42,31 @@ class ExcelExtractorTests(unittest.TestCase):
         rendered = sparse_table(cells)
         self.assertLess(rendered.index("A1"), rendered.index("B2"))
         self.assertEqual(calculation_mode(MockWorkbookWithoutCalculation()), "unspecified")
+
+    def test_sheet_analysis_collects_formula_and_layout_risks(self) -> None:
+        formulas_book = Workbook()
+        formula_sheet = formulas_book.active
+        formula_sheet.title = "Analysis"
+        formula_sheet["B2"] = "=1/0"
+        formula_sheet.row_dimensions[2].hidden = True
+        formula_sheet.column_dimensions["B"].hidden = True
+        formula_sheet.merge_cells("A1:B1")
+
+        values_book = Workbook()
+        value_sheet = values_book.active
+        value_sheet.title = "Analysis"
+        value_sheet["B2"] = "#DIV/0!"
+
+        analysis = analyze_sheet(formula_sheet, value_sheet)
+        metrics = analysis.metrics(index=1, title="Analysis", visibility="visible")
+
+        self.assertEqual(len(analysis.formulas), 1)
+        self.assertEqual(analysis.formulas[0].coordinate, "B2")
+        self.assertEqual(analysis.cached_errors, (("B2", "#DIV/0!"),))
+        self.assertEqual(metrics["hidden_rows"], 1)
+        self.assertEqual(metrics["hidden_columns"], 1)
+        self.assertEqual(metrics["merged_ranges"], 1)
+        self.assertEqual(metrics["cached_formula_errors"], 1)
 
     def test_splits_values_and_formulas_per_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

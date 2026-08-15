@@ -9,13 +9,9 @@ from typing import Any
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
-from contextpack.excel.cells import populated_cells
-from contextpack.excel.markdown import display, rectangular_table, sparse_table
+from contextpack.excel.analysis import analyze_sheet
+from contextpack.excel.markdown import display
 from contextpack.excel.workbook import calculation_mode, safe_sheet_folder
-
-
-RECTANGULAR_CELL_LIMIT = 250_000
-SPARSE_CELL_LIMIT = 500_000
 
 
 def main() -> None:
@@ -49,61 +45,25 @@ def main() -> None:
 
     for index, formula_ws in enumerate(formulas_book.worksheets, 1):
         value_ws = values_book[formula_ws.title]
-        formula_cells_all = populated_cells(formula_ws)
-        value_cells_all = populated_cells(value_ws)
-        max_row = max((cell.row for cell in formula_cells_all), default=0)
-        max_col = max((cell.column for cell in formula_cells_all), default=0)
-        min_row = min((cell.row for cell in formula_cells_all), default=0)
-        min_col = min((cell.column for cell in formula_cells_all), default=0)
-        populated_row_span = max_row - min_row + 1 if max_row else 0
-        populated_col_span = max_col - min_col + 1 if max_col else 0
-        rectangular_size = max_row * max_col
+        analysis = analyze_sheet(formula_ws, value_ws)
         folder_name = safe_sheet_folder(index, formula_ws.title)
         sheet_dir = sheets_root / folder_name
         sheet_dir.mkdir(parents=True, exist_ok=True)
 
-        if len(formula_cells_all) > SPARSE_CELL_LIMIT:
-            raise RuntimeError(
-                f"Sheet {formula_ws.title!r} contains more than {SPARSE_CELL_LIMIT:,} populated/stored cells; "
-                "refine the workbook before packaging."
-            )
-
-        use_sparse = rectangular_size > RECTANGULAR_CELL_LIMIT
-        if use_sparse:
-            quality_warnings.append(
-                f"Sheet {formula_ws.title!r} uses sparse output because its rectangular range contains {rectangular_size:,} cells."
-            )
-            values_body = sparse_table(value_cells_all)
-        elif max_row and max_col:
-            values_body = rectangular_table(value_ws, max_row, max_col)
-        else:
-            values_body = "_Empty sheet._\n"
-
-        formulas = []
-        cached_errors = []
-        for cell in formula_cells_all:
-            if cell.data_type == "f" or (isinstance(cell.value, str) and cell.value.startswith("=")):
-                cached = value_ws[cell.coordinate].value
-                formulas.append((cell.coordinate, cell.value, cached, cell.number_format))
-                if isinstance(cached, str) and cached.startswith("#"):
-                    cached_errors.append((cell.coordinate, cached))
-
-        total_formulas += len(formulas)
-        total_errors += len(cached_errors)
-        hidden_rows = sum(1 for dim in formula_ws.row_dimensions.values() if dim.hidden)
-        hidden_cols = sum(1 for dim in formula_ws.column_dimensions.values() if dim.hidden)
-        charts = len(getattr(formula_ws, "_charts", []))
-        images = len(getattr(formula_ws, "_images", []))
+        if analysis.warning:
+            quality_warnings.append(analysis.warning)
+        total_formulas += len(analysis.formulas)
+        total_errors += len(analysis.cached_errors)
 
         values_path = sheet_dir / "values.md"
         formulas_path = sheet_dir / "formulas.md"
-        values_path.write_text(f"# Values — {formula_ws.title}\n\n{values_body}", encoding="utf-8")
+        values_path.write_text(f"# Values — {formula_ws.title}\n\n{analysis.values_markdown}", encoding="utf-8")
         formula_lines = [f"# Formulas — {formula_ws.title}", ""]
-        if formulas:
+        if analysis.formulas:
             formula_lines.extend(["| Cell | Formula | Cached result | Number format |", "| --- | --- | --- | --- |"])
             formula_lines.extend(
-                f"| {coordinate} | {display(formula)} | {display(cached)} | {display(number_format)} |"
-                for coordinate, formula, cached, number_format in formulas
+                f"| {record.coordinate} | {display(record.formula)} | {display(record.cached_result)} | {display(record.number_format)} |"
+                for record in analysis.formulas
             )
         else:
             formula_lines.append("_No formulas._")
@@ -112,46 +72,25 @@ def main() -> None:
         relative_values = f"sheets-data/{folder_name}/values.md"
         relative_formulas = f"sheets-data/{folder_name}/formulas.md"
         values_index.append(f"- [{index}. {formula_ws.title}]({relative_values})")
-        formulas_index.append(f"- [{index}. {formula_ws.title}]({relative_formulas}) — {len(formulas)} formula(s)")
+        formulas_index.append(f"- [{index}. {formula_ws.title}]({relative_formulas}) — {len(analysis.formulas)} formula(s)")
         info_parts.extend(
             [
                 f"## {index}. {formula_ws.title}",
                 f"- Visibility: {formula_ws.sheet_state}",
-                f"- Populated cells: {len(formula_cells_all)}",
-                f"- Populated bounds: A1:{get_column_letter(max_col)}{max_row}" if max_row and max_col else "- Populated bounds: empty",
-                f"- Output mode: {'sparse' if use_sparse else 'rectangular'}",
-                f"- Formulas: {len(formulas)}",
-                f"- Cached formula errors: {len(cached_errors)}",
-                f"- Merged ranges: {len(formula_ws.merged_cells.ranges)}",
-                f"- Hidden rows / columns: {hidden_rows} / {hidden_cols}",
-                f"- Charts / embedded images: {charts} / {images}",
+                f"- Populated cells: {analysis.populated_cells}",
+                f"- Populated bounds: A1:{get_column_letter(analysis.max_column)}{analysis.max_row}" if analysis.max_row and analysis.max_column else "- Populated bounds: empty",
+                f"- Output mode: {analysis.output_mode}",
+                f"- Formulas: {len(analysis.formulas)}",
+                f"- Cached formula errors: {len(analysis.cached_errors)}",
+                f"- Merged ranges: {analysis.merged_ranges}",
+                f"- Hidden rows / columns: {analysis.hidden_rows} / {analysis.hidden_columns}",
+                f"- Charts / embedded images: {analysis.charts} / {analysis.images}",
                 f"- Values: [{relative_values}]({relative_values})",
                 f"- Formulas: [{relative_formulas}]({relative_formulas})",
                 "",
             ]
         )
-        sheet_metrics.append(
-            {
-                "index": index,
-                "title": formula_ws.title,
-                "visibility": formula_ws.sheet_state,
-                "populated_cells": len(formula_cells_all),
-                "max_row": max_row,
-                "max_column": max_col,
-                "min_row": min_row,
-                "min_column": min_col,
-                "populated_row_span": populated_row_span,
-                "populated_column_span": populated_col_span,
-                "output_mode": "sparse" if use_sparse else "rectangular",
-                "formulas": len(formulas),
-                "cached_formula_errors": len(cached_errors),
-                "hidden_rows": hidden_rows,
-                "hidden_columns": hidden_cols,
-                "charts": charts,
-                "images": images,
-                "merged_ranges": len(formula_ws.merged_cells.ranges),
-            }
-        )
+        sheet_metrics.append(analysis.metrics(index=index, title=formula_ws.title, visibility=formula_ws.sheet_state))
 
     summary = [
         f"- Sheets: {len(formulas_book.worksheets)}",
