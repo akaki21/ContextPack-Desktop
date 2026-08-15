@@ -2,63 +2,20 @@ from __future__ import annotations
 
 import argparse
 import json
-import re
 import shutil
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 
+from contextpack.excel.cells import populated_cells
+from contextpack.excel.markdown import display, rectangular_table, sparse_table
+from contextpack.excel.workbook import calculation_mode, safe_sheet_folder
+
 
 RECTANGULAR_CELL_LIMIT = 250_000
 SPARSE_CELL_LIMIT = 500_000
-
-
-def display(value: Any) -> str:
-    if value is None:
-        return ""
-    text = str(value).replace("\r\n", "\n").replace("\r", "\n")
-    return text.replace("|", "\\|").replace("\n", "<br>")
-
-
-def instantiated_cells(ws) -> list[Any]:
-    cells = getattr(ws, "_cells", None)
-    if isinstance(cells, dict):
-        return list(cells.values())
-    return [cell for row in ws.iter_rows() for cell in row]
-
-
-def populated_cells(ws) -> list[Any]:
-    return [cell for cell in instantiated_cells(ws) if cell.value is not None]
-
-
-def safe_sheet_folder(index: int, title: str) -> str:
-    safe = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", title).strip().rstrip(".")
-    safe = safe[:60] or "sheet"
-    return f"{index:02d}-{safe}"
-
-
-def rectangular_table(ws, max_row: int, max_col: int) -> str:
-    rows = ["| Row | " + " | ".join(get_column_letter(i) for i in range(1, max_col + 1)) + " |"]
-    rows.append("| ---: | " + " | ".join("---" for _ in range(max_col)) + " |")
-    for row_idx in range(1, max_row + 1):
-        values = [display(ws.cell(row_idx, col_idx).value) for col_idx in range(1, max_col + 1)]
-        rows.append(f"| {row_idx} | " + " | ".join(values) + " |")
-    return "\n".join(rows) + "\n"
-
-
-def sparse_table(cells: Iterable[Any]) -> str:
-    rows = ["| Cell | Value |", "| --- | --- |"]
-    for cell in sorted(cells, key=lambda item: (item.row, item.column)):
-        rows.append(f"| {cell.coordinate} | {display(cell.value)} |")
-    return "\n".join(rows) + "\n"
-
-
-def calculation_mode(workbook) -> str:
-    calculation = getattr(workbook, "calculation", None)
-    mode = getattr(calculation, "calcMode", None)
-    return str(mode) if mode else "unspecified"
 
 
 def main() -> None:

@@ -11,14 +11,36 @@ from pathlib import Path
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, Reference
 
+from contextpack.excel.cells import populated_cells
+from contextpack.excel.markdown import display, sparse_table
+from contextpack.excel.workbook import calculation_mode, safe_sheet_folder
+
 
 ROOT = Path(__file__).resolve().parents[1]
 EXTRACTOR = ROOT / "extract-excel-package.py"
 
 
+class MockWorkbookWithoutCalculation:
+    """Minimal workbook shape used to verify the defensive metadata fallback."""
+
+
 class ExcelExtractorTests(unittest.TestCase):
     def run_extractor(self, workbook_path: Path, output_path: Path) -> None:
         subprocess.run([sys.executable, str(EXTRACTOR), str(workbook_path), str(output_path)], check=True)
+
+    def test_excel_helpers_are_safe_and_deterministic(self) -> None:
+        self.assertEqual(display("first|second\nthird"), "first\\|second<br>third")
+        self.assertEqual(safe_sheet_folder(2, 'Bad:/Name*.'), "02-Bad__Name_")
+
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet["B2"] = "second"
+        sheet["A1"] = "first"
+        cells = populated_cells(sheet)
+        self.assertEqual([cell.coordinate for cell in cells], ["B2", "A1"])
+        rendered = sparse_table(cells)
+        self.assertLess(rendered.index("A1"), rendered.index("B2"))
+        self.assertEqual(calculation_mode(MockWorkbookWithoutCalculation()), "unspecified")
 
     def test_splits_values_and_formulas_per_sheet(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

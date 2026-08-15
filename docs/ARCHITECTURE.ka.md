@@ -36,6 +36,9 @@
 - `contextpack/gui/theme.py` — Desktop ფანჯრის ფერები და ttk ვიზუალური სტილები.
 - `contextpack/gui/layout.py` — ფანჯრის ხუთი ვიზუალური სექცია: header, file selection, options, action/progress და details/results.
 - `contextpack/job_controller.py` — hidden PowerShell subprocess-ის გაშვება, output-reading thread, GUI event queue და cooperative Cancel token.
+- `contextpack/excel/cells.py` — მხოლოდ რეალურად შენახული/შევსებული Excel უჯრედების უსაფრთხო წაკითხვა.
+- `contextpack/excel/markdown.py` — rectangular და sparse Markdown table-ების შექმნა და მნიშვნელობების escaping.
+- `contextpack/excel/workbook.py` — sheet folder-ის უსაფრთხო სახელი და workbook calculation mode.
 
 `layout.py` მხოლოდ widget-ებს ქმნის და application-ის callback-ებს უკავშირებს. ფაილის დამუშავება, subprocess და Cancel ლოგიკა მასში განზრახ არ არის, რათა ვიზუალური განლაგება processing behavior-ს არ შეერიოს.
 
