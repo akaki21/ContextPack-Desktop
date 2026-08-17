@@ -14,6 +14,7 @@ $root = $PSScriptRoot
 . (Join-Path $root 'ContextPack.ExcelPagination.ps1')
 . (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
 . (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
+. (Join-Path $root 'ContextPack.ExcelLayoutReport.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
 $renderer = Join-Path $root 'render-pdf-pages.py'
@@ -138,13 +139,10 @@ try {
         }
     }
 
-    $layoutReportPath = Join-Path $packageDir 'print-layout-report.json'
-    ConvertTo-Json -InputObject @($layoutDiagnostics) -Depth 6 | Set-Content -LiteralPath $layoutReportPath -Encoding UTF8
-    $autoDiagnostics = @($layoutDiagnostics | Where-Object { $_.layout -eq 'AutoFit' })
-    $autoApplied = @($autoDiagnostics | Where-Object { $_.status -eq 'applied' })
-    $autoSkipped = @($autoDiagnostics | Where-Object { $_.status -eq 'skipped' })
-    foreach ($diagnostic in $autoSkipped) { $layoutWarnings += ("AutoFit skipped for sheet '{0}': {1}." -f $diagnostic.sheet, ($diagnostic.reasons -join '; ')) }
-    foreach ($diagnostic in $autoApplied | Where-Object { $_.reasons.Count -gt 0 }) { $layoutWarnings += ("AutoFit note for sheet '{0}': {1}." -f $diagnostic.sheet, ($diagnostic.reasons -join '; ')) }
+    $layoutReportResult = Write-ContextPackExcelLayoutReport -PackageDirectory $packageDir -Diagnostics $layoutDiagnostics
+    $autoApplied = @($layoutReportResult.AutoFitApplied)
+    $autoSkipped = @($layoutReportResult.AutoFitSkipped)
+    $layoutWarnings += @($layoutReportResult.Warnings)
 
     $qualityPath = Join-Path $packageDir 'quality-report.md'
     Add-Content -LiteralPath $qualityPath -Encoding UTF8 -Value @(
