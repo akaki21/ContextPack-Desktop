@@ -11,6 +11,7 @@ $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
 . (Join-Path $root 'ContextPack.ExcelCom.ps1')
 . (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
+. (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
 $renderer = Join-Path $root 'render-pdf-pages.py'
@@ -131,18 +132,12 @@ try {
     $maxRenderedPages = 1000
 
     if ($RenderMode -in @('Workbook', 'Both')) {
-        $workbookLayoutDir = Join-Path $renderedDir 'workbook-layout'
-        $workbookPages = Join-Path $workbookLayoutDir 'pages'
-        New-Item -ItemType Directory -Path $workbookPages -Force | Out-Null
-        $workbookPdf = Join-Path $workbookLayoutDir 'workbook.pdf'
-        $workbookRenderMetricsPath = Join-Path $workbookLayoutDir 'page-render-metrics.json'
-        $layoutDiagnostics += Export-ExcelLayout -Layout Workbook -PdfPath $workbookPdf -SheetMetrics $sheetMetricMap
-        & $python $renderer $workbookPdf $workbookPages --dpi $Dpi --metrics $workbookRenderMetricsPath --max-pages $maxRenderedPages
-        if ($LASTEXITCODE -ne 0) { throw 'Rendering workbook-layout PDF failed' }
-        $workbookRenderMetrics = Get-Content -LiteralPath $workbookRenderMetricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($workbookRenderMetrics.render_skipped) {
-            $layoutWarnings += "Workbook-layout PNG rendering skipped: $($workbookRenderMetrics.reason) The complete PDF is preserved."
+        $workbookLayoutResult = Invoke-ContextPackExcelWorkbookLayout -RenderedDirectory $renderedDir -Python $python -Renderer $renderer -Dpi $Dpi -MaxRenderedPages $maxRenderedPages -ExportPdf {
+            param($PdfPath)
+            Export-ExcelLayout -Layout Workbook -PdfPath $PdfPath -SheetMetrics $sheetMetricMap
         }
+        $layoutDiagnostics += @($workbookLayoutResult.Diagnostics)
+        $layoutWarnings += @($workbookLayoutResult.Warnings)
     }
 
     if ($RenderMode -in @('AutoFit', 'Both')) {
