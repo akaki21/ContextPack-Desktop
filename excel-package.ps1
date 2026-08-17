@@ -9,6 +9,7 @@
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
+. (Join-Path $root 'ContextPack.ExcelCom.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
 $renderer = Join-Path $root 'render-pdf-pages.py'
@@ -19,17 +20,6 @@ if ($extension -notin @('.xlsx', '.xlsm', '.xltx', '.xltm')) { throw 'Supported 
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 $build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_excel_package') -OutputDirectory $OutputDirectory
-
-function Invoke-ExcelRetry {
-    param([Parameter(Mandatory = $true)][scriptblock]$Action)
-    for ($attempt = 1; $attempt -le 8; $attempt++) {
-        try { return & $Action }
-        catch [System.Runtime.InteropServices.COMException] {
-            if ($_.Exception.HResult -ne -2147418111 -or $attempt -eq 8) { throw }
-            Start-Sleep -Milliseconds (300 * $attempt)
-        }
-    }
-}
 
 function Get-ManualPageBreakCount {
     param($Worksheet, [string]$PropertyName)
@@ -50,9 +40,7 @@ function Get-ManualPageBreakCount {
                 }
                 if ([int](Invoke-ExcelRetry { $pageBreak.Type }) -eq -4135) { $manualCount++ }
             } finally {
-                if ($pageBreak -ne $null) {
-                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($pageBreak) | Out-Null } catch { }
-                }
+                Release-ExcelComObject $pageBreak
             }
         }
         return $manualCount
@@ -81,90 +69,85 @@ function Export-ExcelLayout {
     $workbook = $null
     $diagnostics = @()
     try {
-        $excel = New-Object -ComObject Excel.Application
-        Start-Sleep -Milliseconds 800
-        Invoke-ExcelRetry { $excel.Visible = $false } | Out-Null
-        Invoke-ExcelRetry { $excel.DisplayAlerts = $false } | Out-Null
-        Invoke-ExcelRetry { $excel.ScreenUpdating = $false } | Out-Null
-        Invoke-ExcelRetry { $excel.EnableEvents = $false } | Out-Null
-        Invoke-ExcelRetry { $excel.AskToUpdateLinks = $false } | Out-Null
-        Invoke-ExcelRetry { $excel.AutomationSecurity = 3 } | Out-Null
-        $workbook = Invoke-ExcelRetry { $excel.Workbooks.Open($inputPath, 0, $true) }
+        $excel = New-ContextPackExcelApplication
+        $workbook = Open-ContextPackExcelWorkbook -Application $excel -Path $inputPath
 
         $worksheetCount = [int](Invoke-ExcelRetry { $workbook.Worksheets.Count })
         for ($worksheetIndex = 1; $worksheetIndex -le $worksheetCount; $worksheetIndex++) {
-            $worksheet = Invoke-ExcelRetry { $workbook.Worksheets.Item($worksheetIndex) }
-            $title = [string]$worksheet.Name
-            $metric = $SheetMetrics[$title]
-            $visible = ([int]$worksheet.Visible -eq -1)
-            $printAreaBefore = ''
-            $titleRows = ''
-            $titleColumns = ''
-            try { $printAreaBefore = [string]$worksheet.PageSetup.PrintArea } catch { }
-            try { $titleRows = [string]$worksheet.PageSetup.PrintTitleRows } catch { }
-            try { $titleColumns = [string]$worksheet.PageSetup.PrintTitleColumns } catch { }
-            $horizontalBreaks = Get-ManualPageBreakCount $worksheet 'HPageBreaks'
-            $verticalBreaks = Get-ManualPageBreakCount $worksheet 'VPageBreaks'
-            $shapeCount = Get-ComCollectionCount $worksheet 'Shapes'
-            $status = if ($Layout -eq 'Workbook') { 'preserved' } else { 'skipped' }
-            $reasons = @()
-            $printAreaAfter = $printAreaBefore
-            $fitToPagesWide = $null
+            $worksheet = $null
+            try {
+                $worksheet = Invoke-ExcelRetry { $workbook.Worksheets.Item($worksheetIndex) }
+                $title = [string]$worksheet.Name
+                $metric = $SheetMetrics[$title]
+                $visible = ([int]$worksheet.Visible -eq -1)
+                $printAreaBefore = ''
+                $titleRows = ''
+                $titleColumns = ''
+                try { $printAreaBefore = [string]$worksheet.PageSetup.PrintArea } catch { }
+                try { $titleRows = [string]$worksheet.PageSetup.PrintTitleRows } catch { }
+                try { $titleColumns = [string]$worksheet.PageSetup.PrintTitleColumns } catch { }
+                $horizontalBreaks = Get-ManualPageBreakCount $worksheet 'HPageBreaks'
+                $verticalBreaks = Get-ManualPageBreakCount $worksheet 'VPageBreaks'
+                $shapeCount = Get-ComCollectionCount $worksheet 'Shapes'
+                $status = if ($Layout -eq 'Workbook') { 'preserved' } else { 'skipped' }
+                $reasons = @()
+                $printAreaAfter = $printAreaBefore
+                $fitToPagesWide = $null
 
-            if ($Layout -eq 'AutoFit') {
-                if (-not $visible) { $reasons += 'sheet is hidden' }
-                elseif (-not $metric -or [int]$metric.max_row -eq 0 -or [int]$metric.max_column -eq 0) { $reasons += 'sheet has no populated cells' }
-                elseif ([int]$metric.populated_column_span -gt $MaxAutoFitColumns) { $reasons += "populated range exceeds the $MaxAutoFitColumns-column AutoFit safety limit" }
-                elseif ([int]$metric.charts -gt 0 -or [int]$metric.images -gt 0 -or $shapeCount -gt 0) { $reasons += 'sheet contains charts, images, or drawing objects that could fall outside an inferred print area' }
-                elseif (($horizontalBreaks + $verticalBreaks) -gt 0) { $reasons += 'sheet contains manual page breaks' }
-                else {
-                    $startCell = $worksheet.Cells([int]$metric.min_row, [int]$metric.min_column)
-                    $endCell = $worksheet.Cells([int]$metric.max_row, [int]$metric.max_column)
-                    $usedDataRange = $worksheet.Range($startCell, $endCell)
-                    $printAreaAfter = [string]$usedDataRange.Address()
-                    Invoke-ExcelRetry { $worksheet.PageSetup.PrintArea = $printAreaAfter } | Out-Null
-                    Invoke-ExcelRetry { $worksheet.PageSetup.Zoom = $false } | Out-Null
-                    $fitToPagesWide = [Math]::Max(1, [Math]::Ceiling([int]$metric.populated_column_span / 8.0))
-                    Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesWide = $fitToPagesWide } | Out-Null
-                    Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesTall = $false } | Out-Null
-                    $status = 'applied'
-                    if ($fitToPagesWide -gt 1) { $reasons += "wide sheet split across $fitToPagesWide pages to preserve readability" }
-                    if ([int]$metric.merged_ranges -gt 0) { $reasons += 'merged cells are present; verify page boundaries visually' }
-                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($usedDataRange) | Out-Null } catch { }
-                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($startCell) | Out-Null } catch { }
-                    try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($endCell) | Out-Null } catch { }
+                if ($Layout -eq 'AutoFit') {
+                    if (-not $visible) { $reasons += 'sheet is hidden' }
+                    elseif (-not $metric -or [int]$metric.max_row -eq 0 -or [int]$metric.max_column -eq 0) { $reasons += 'sheet has no populated cells' }
+                    elseif ([int]$metric.populated_column_span -gt $MaxAutoFitColumns) { $reasons += "populated range exceeds the $MaxAutoFitColumns-column AutoFit safety limit" }
+                    elseif ([int]$metric.charts -gt 0 -or [int]$metric.images -gt 0 -or $shapeCount -gt 0) { $reasons += 'sheet contains charts, images, or drawing objects that could fall outside an inferred print area' }
+                    elseif (($horizontalBreaks + $verticalBreaks) -gt 0) { $reasons += 'sheet contains manual page breaks' }
+                    else {
+                        $startCell = $null
+                        $endCell = $null
+                        $usedDataRange = $null
+                        try {
+                            $startCell = $worksheet.Cells([int]$metric.min_row, [int]$metric.min_column)
+                            $endCell = $worksheet.Cells([int]$metric.max_row, [int]$metric.max_column)
+                            $usedDataRange = $worksheet.Range($startCell, $endCell)
+                            $printAreaAfter = [string]$usedDataRange.Address()
+                            Invoke-ExcelRetry { $worksheet.PageSetup.PrintArea = $printAreaAfter } | Out-Null
+                            Invoke-ExcelRetry { $worksheet.PageSetup.Zoom = $false } | Out-Null
+                            $fitToPagesWide = [Math]::Max(1, [Math]::Ceiling([int]$metric.populated_column_span / 8.0))
+                            Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesWide = $fitToPagesWide } | Out-Null
+                            Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesTall = $false } | Out-Null
+                            $status = 'applied'
+                            if ($fitToPagesWide -gt 1) { $reasons += "wide sheet split across $fitToPagesWide pages to preserve readability" }
+                            if ([int]$metric.merged_ranges -gt 0) { $reasons += 'merged cells are present; verify page boundaries visually' }
+                        } finally {
+                            Release-ExcelComObject $usedDataRange
+                            Release-ExcelComObject $startCell
+                            Release-ExcelComObject $endCell
+                        }
+                    }
                 }
-            }
 
-            $diagnostics += [pscustomobject]@{
-                sheet = $title
-                visible = $visible
-                layout = $Layout
-                status = $status
-                reasons = @($reasons)
-                print_area_before = $printAreaBefore
-                print_area_after = $printAreaAfter
-                fit_to_pages_wide = $fitToPagesWide
-                print_title_rows = $titleRows
-                print_title_columns = $titleColumns
-                manual_horizontal_page_breaks = $horizontalBreaks
-                manual_vertical_page_breaks = $verticalBreaks
-                drawing_objects = $shapeCount
+                $diagnostics += [pscustomobject]@{
+                    sheet = $title
+                    visible = $visible
+                    layout = $Layout
+                    status = $status
+                    reasons = @($reasons)
+                    print_area_before = $printAreaBefore
+                    print_area_after = $printAreaAfter
+                    fit_to_pages_wide = $fitToPagesWide
+                    print_title_rows = $titleRows
+                    print_title_columns = $titleColumns
+                    manual_horizontal_page_breaks = $horizontalBreaks
+                    manual_vertical_page_breaks = $verticalBreaks
+                    drawing_objects = $shapeCount
+                }
+            } finally {
+                Release-ExcelComObject $worksheet
             }
-            try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($worksheet) | Out-Null } catch { }
         }
         Invoke-ExcelRetry { $workbook.ExportAsFixedFormat(0, $PdfPath, 0, $true, $false) } | Out-Null
         return @($diagnostics)
     } finally {
-        if ($workbook -ne $null) {
-            try { Invoke-ExcelRetry { $workbook.Close($false) } | Out-Null } catch { }
-            try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($workbook) | Out-Null } catch { }
-        }
-        if ($excel -ne $null) {
-            try { Invoke-ExcelRetry { $excel.Quit() } | Out-Null } catch { }
-            try { [System.Runtime.InteropServices.Marshal]::ReleaseComObject($excel) | Out-Null } catch { }
-        }
-        [GC]::Collect(); [GC]::WaitForPendingFinalizers()
+        Complete-ContextPackExcelComCleanup -Workbook $workbook -Application $excel
     }
 }
 

@@ -24,6 +24,7 @@
 - `ContextPack.Environment.ps1` — Python/Tesseract-ის პოვნა და OCR გარემოს მომზადება.
 - `ContextPack.Build.ps1` — atomic build, უსაფრთხო replacement/rollback და cleanup საზღვრები.
 - `ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
+- `ContextPack.ExcelCom.ps1` — Excel COM retry, უსაფრთხოების პარამეტრები, workbook-ის read-only გახსნა და COM lifecycle cleanup.
 
 ## Python-ის გამოყოფილი საფუძველი
 

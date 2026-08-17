@@ -76,6 +76,7 @@ git status --short --branch
 - `ContextPack.Environment.ps1` — Python/Tesseract/OCR environment;
 - `ContextPack.Build.ps1` — atomic build/replacement/rollback/cleanup;
 - `ContextPack.Manifest.ps1` — manifest writer;
+- `ContextPack.ExcelCom.ps1` — COM retry, უსაფრთხო Excel application configuration, read-only workbook open და lifecycle cleanup;
 - portable ZIP build უკვე აკოპირებს `contextpack/` Python package-ს.
 
 ### Excel Python extractor
@@ -90,10 +91,11 @@ git status --short --branch
 
 ## მიმდინარე შემოწმებული baseline
 
-ამ handoff-ის შექმნის მომენტში წარმატებით გადის:
+მიმდინარე სამუშაო branch-ის ამ მდგომარეობაში წარმატებით გადის:
 
 - 28 Python unit/integration test;
 - `tests/test-static.ps1`;
+- `tests/test-excel-com.ps1` COM retry/configuration/read-only/cleanup tests;
 - `tests/test-common.ps1` atomic build/manifest tests;
 - `tests/test-e2e.ps1 -RequireExcel` სრული E2E:
   - Markdown conversion;
@@ -119,18 +121,9 @@ E2E script თვითონ ქმნის უნიკალურ Windows T
 
 ## შემდეგი ზუსტი ეტაპი
 
-შემდეგი სამუშაოა `excel-package.ps1`-ის მაღალი რისკის COM rendering ნაწილის რეფაქტორი.
+Excel COM lifecycle-ის პირველი milestone დასრულებულია: retry, release helper, უსაფრთხო application configuration, read-only open და workbook/worksheet/application cleanup `ContextPack.ExcelCom.ps1`-შია გამოყოფილი.
 
-პირველ მცირე milestone-ში მხოლოდ ეს პასუხისმგებლობები გამოყავი:
-
-1. COM retry (`Invoke-ExcelRetry`);
-2. COM object-ის უსაფრთხო release helper;
-3. Excel application lifecycle-ის შექმნა/კონფიგურაცია;
-4. macros/events/link updates-ის იძულებით გამორთვა;
-5. workbook-ის read-only გახსნა;
-6. workbook/worksheet/Excel application cleanup.
-
-Layout გადაწყვეტილებებს პირველ milestone-ში არ შეეხო. არ შეცვალო:
+შემდეგ მცირე milestone-ში მხოლოდ manual page break და shapes diagnostics გამოყავი `excel-package.ps1`-დან. Layout გადაწყვეტილებები არ შეცვალო და არ შეეხო:
 
 - Workbook vs AutoFit ქცევა;
 - horizontal pagination;
