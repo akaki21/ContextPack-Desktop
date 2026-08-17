@@ -1,4 +1,4 @@
-# Write the stable machine-readable description of a completed package.
+# Core: write the stable machine-readable description of a completed package.
 
 function Write-ContextPackManifest {
     param(

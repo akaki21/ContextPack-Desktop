@@ -1,4 +1,4 @@
-# Owns Excel COM retry, safety configuration, read-only opening, and cleanup.
+# Excel: own COM retry, safety configuration, read-only opening, and cleanup.
 # Keep workbook layout and rendering decisions in the calling package script.
 $script:ExcelCallRejectedHResult = -2147418111
 

@@ -1,4 +1,4 @@
-# Makes pure AutoFit eligibility decisions without touching Excel COM objects.
+# Excel: make pure AutoFit eligibility decisions without touching COM objects.
 # Keep this condition order stable because the first matching reason is reported.
 
 function Get-ContextPackExcelAutoFitDecision {

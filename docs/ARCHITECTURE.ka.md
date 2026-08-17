@@ -21,17 +21,17 @@
 - `contextpack.ps1` — command-line dispatcher, რომელიც processor-ს ირჩევს.
 - `contextpack-routing.ps1` — input-ის ტიპის ამოცნობა და PDF/Excel/Image/Document processing route-ები.
 - `common.ps1` — ძველი processing scripts-ის სტაბილური compatibility loader.
-- `ContextPack.Environment.ps1` — Python/Tesseract-ის პოვნა და OCR გარემოს მომზადება.
-- `ContextPack.Build.ps1` — atomic build, უსაფრთხო replacement/rollback და cleanup საზღვრები.
-- `ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
-- `ContextPack.ExcelCom.ps1` — Excel COM retry, უსაფრთხოების პარამეტრები, workbook-ის read-only გახსნა და COM lifecycle cleanup.
-- `ContextPack.ExcelDiagnostics.ps1` — manual page break-ებისა და drawing object-ების read-only დათვლა AutoFit safety decisions-ისთვის.
-- `ContextPack.ExcelPagination.ps1` — 8-სვეტიანი horizontal pagination, wide-sheet limit, PrintArea/PageSetup application და COM cleanup.
-- `ContextPack.ExcelAutoFit.ps1` — hidden/empty/wide/drawing/manual-break პირობების pure AutoFit eligibility გადაწყვეტილება.
-- `ContextPack.ExcelLayoutExport.ps1` — workbook-ის read-only COM export, sheet diagnostics და AutoFit pagination-ის გამოყენება source-ის შენახვის გარეშე.
-- `ContextPack.ExcelWorkbookLayout.ps1` — ავტორის workbook-layout PDF/PNG export-ის საქაღალდეები, renderer metrics და warning orchestration.
-- `ContextPack.ExcelAutoFitLayout.ps1` — დამხმარე AutoFit PDF/PNG საქაღალდეები, renderer metrics და complete-PDF fallback warning.
-- `ContextPack.ExcelLayoutReport.ps1` — სტაბილური `print-layout-report.json`, AutoFit applied/skipped შეჯამება და warnings.
+- `powershell/Core/ContextPack.Environment.ps1` — Python/Tesseract-ის პოვნა და OCR გარემოს მომზადება.
+- `powershell/Core/ContextPack.Build.ps1` — atomic build, უსაფრთხო replacement/rollback და cleanup საზღვრები.
+- `powershell/Core/ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
+- `powershell/Excel/ContextPack.ExcelCom.ps1` — Excel COM retry, უსაფრთხოების პარამეტრები, workbook-ის read-only გახსნა და COM lifecycle cleanup.
+- `powershell/Excel/ContextPack.ExcelDiagnostics.ps1` — manual page break-ებისა და drawing object-ების read-only დათვლა AutoFit safety decisions-ისთვის.
+- `powershell/Excel/ContextPack.ExcelPagination.ps1` — 8-სვეტიანი horizontal pagination, wide-sheet limit, PrintArea/PageSetup application და COM cleanup.
+- `powershell/Excel/ContextPack.ExcelAutoFit.ps1` — hidden/empty/wide/drawing/manual-break პირობების pure AutoFit eligibility გადაწყვეტილება.
+- `powershell/Excel/ContextPack.ExcelLayoutExport.ps1` — workbook-ის read-only COM export, sheet diagnostics და AutoFit pagination-ის გამოყენება source-ის შენახვის გარეშე.
+- `powershell/Excel/ContextPack.ExcelWorkbookLayout.ps1` — ავტორის workbook-layout PDF/PNG export-ის საქაღალდეები, renderer metrics და warning orchestration.
+- `powershell/Excel/ContextPack.ExcelAutoFitLayout.ps1` — დამხმარე AutoFit PDF/PNG საქაღალდეები, renderer metrics და complete-PDF fallback warning.
+- `powershell/Excel/ContextPack.ExcelLayoutReport.ps1` — სტაბილური `print-layout-report.json`, AutoFit applied/skipped შეჯამება და warnings.
 
 ## Python-ის გამოყოფილი საფუძველი
 
@@ -78,7 +78,7 @@ Root-level `excel-package.ps1` მოკლე orchestration script-ია: ი�
 - დროებითი build მხოლოდ მისთვის განკუთვნილი output root-ის შიგნით იშლება.
 - GUI cancellation უსაფრთხო ოპერაციის საზღვარზე სრულდება.
 
-`ContextPack.Build.ps1`-ის ცვლილებები მოწმდება ცალკე დროებით საქაღალდეში: ტესტი ადასტურებს source hash-ს, ერთსახელიანი სხვადასხვა წყაროების გაყოფას, იგივე source-ის package replacement-ს და unrelated output ფაილების შენარჩუნებას.
+`powershell/Core/ContextPack.Build.ps1`-ის ცვლილებები მოწმდება ცალკე დროებით საქაღალდეში: ტესტი ადასტურებს source hash-ს, ერთსახელიანი სხვადასხვა წყაროების გაყოფას, იგივე source-ის package replacement-ს და unrelated output ფაილების შენარჩუნებას.
 
 ## რეფაქტორის მიმართულება
 

@@ -1,4 +1,4 @@
-# Writes the stable Excel print-layout diagnostics report and summarizes AutoFit outcomes.
+# Excel: write the stable print-layout report and summarize AutoFit outcomes.
 
 function Write-ContextPackExcelLayoutReport {
     param(

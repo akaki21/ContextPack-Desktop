@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-. (Join-Path $root 'ContextPack.ExcelCom.ps1')
+$excelModules = Join-Path $root 'powershell\Excel'
+. (Join-Path $excelModules 'ContextPack.ExcelCom.ps1')
 
 function Assert-ExcelComTest {
     param([bool]$Condition, [string]$Message)

@@ -1,4 +1,4 @@
-# Owns Excel workbook layout export and per-sheet diagnostics.
+# Excel: own workbook layout export and per-sheet diagnostics.
 # Excel COM lifecycle, diagnostics, AutoFit decisions, and pagination come from the shared helpers.
 
 function Export-ContextPackExcelLayout {

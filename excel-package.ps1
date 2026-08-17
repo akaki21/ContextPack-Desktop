@@ -8,15 +8,16 @@
 
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
+$excelModules = Join-Path $root 'powershell\Excel'
 . (Join-Path $root 'common.ps1')
-. (Join-Path $root 'ContextPack.ExcelCom.ps1')
-. (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
-. (Join-Path $root 'ContextPack.ExcelPagination.ps1')
-. (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
-. (Join-Path $root 'ContextPack.ExcelLayoutExport.ps1')
-. (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
-. (Join-Path $root 'ContextPack.ExcelAutoFitLayout.ps1')
-. (Join-Path $root 'ContextPack.ExcelLayoutReport.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelCom.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelDiagnostics.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelPagination.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelAutoFit.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelLayoutExport.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelWorkbookLayout.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelAutoFitLayout.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelLayoutReport.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
 $renderer = Join-Path $root 'render-pdf-pages.py'

@@ -1,7 +1,8 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-. (Join-Path $root 'ContextPack.ExcelCom.ps1')
-. (Join-Path $root 'ContextPack.ExcelPagination.ps1')
+$excelModules = Join-Path $root 'powershell\Excel'
+. (Join-Path $excelModules 'ContextPack.ExcelCom.ps1')
+. (Join-Path $excelModules 'ContextPack.ExcelPagination.ps1')
 
 function Assert-ExcelPaginationTest {
     param([bool]$Condition, [string]$Message)

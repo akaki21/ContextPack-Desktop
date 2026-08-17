@@ -28,7 +28,7 @@ try {
     }
     # Keep code packages explicit so a portable release cannot silently omit
     # modules imported by the stable root-level launchers.
-    foreach ($directory in @('assets', 'contextpack', 'docs', 'examples')) { Copy-ReleaseDirectory $directory }
+    foreach ($directory in @('assets', 'contextpack', 'powershell', 'docs', 'examples')) { Copy-ReleaseDirectory $directory }
     foreach ($directory in @('input', 'output', 'tessdata')) {
         $destination = Join-Path $packageRoot $directory
         New-Item -ItemType Directory -Path $destination -Force | Out-Null

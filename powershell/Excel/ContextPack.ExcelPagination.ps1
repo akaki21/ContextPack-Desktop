@@ -1,4 +1,4 @@
-# Plans and applies AutoFit horizontal pagination without saving the workbook.
+# Excel: plan and apply AutoFit horizontal pagination without saving the workbook.
 # Eight populated columns per horizontal page is the reviewed readability rule.
 
 function Get-ContextPackExcelWideSheetSkipReason {

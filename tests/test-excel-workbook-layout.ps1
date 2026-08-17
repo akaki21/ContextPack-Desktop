@@ -1,6 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-. (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
+$excelModules = Join-Path $root 'powershell\Excel'
+. (Join-Path $excelModules 'ContextPack.ExcelWorkbookLayout.ps1')
 
 function Assert-ExcelWorkbookLayoutTest {
     param([bool]$Condition, [string]$Message)

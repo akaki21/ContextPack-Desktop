@@ -36,7 +36,7 @@ ContextPack Desktop უნდა იყოს ლოკალური, მა�
 
 - repository: `https://github.com/akaki21/ContextPack-Desktop.git`
 - სამუშაო ბრენჩი: `refactor/readable-foundation`
-- ბოლო დასრულებული milestone ამ სესიის დაწყებამდე: `c297933 — Extract Excel layout report aggregation`
+- ბოლო დასრულებული milestone ამ სესიის დაწყებამდე: `1e7b024 — Extract Excel layout orchestration`
 - `main` ჯერ არ შეცვლილა;
 - ყველა დასრულებული milestone ატვირთულია სამუშაო ბრენჩზე;
 - ახალი სამუშაო ყოველთვის მცირე commit-ებად დაყავი და წარმატებული სრული შემოწმების შემდეგ push გააკეთე.
@@ -73,17 +73,17 @@ git status --short --branch
 - `contextpack.ps1` არის მოკლე, სტაბილური entry point;
 - `contextpack-routing.ps1` შეიცავს PDF/Excel/Image/Document route-ებს;
 - `common.ps1` არის compatibility loader;
-- `ContextPack.Environment.ps1` — Python/Tesseract/OCR environment;
-- `ContextPack.Build.ps1` — atomic build/replacement/rollback/cleanup;
-- `ContextPack.Manifest.ps1` — manifest writer;
-- `ContextPack.ExcelCom.ps1` — COM retry, უსაფრთხო Excel application configuration, read-only workbook open და lifecycle cleanup;
-- `ContextPack.ExcelDiagnostics.ps1` — manual page break და shapes diagnostics უსაფრთხო fallback-ებით;
-- `ContextPack.ExcelPagination.ps1` — horizontal page count, wide-sheet safeguard, AutoFit PrintArea/PageSetup application და cleanup;
-- `ContextPack.ExcelAutoFit.ps1` — AutoFit eligibility condition order და skip reasons Excel COM mutation-ის გარეშე;
-- `ContextPack.ExcelLayoutExport.ps1` — read-only workbook export, per-sheet diagnostics, AutoFit pagination და guaranteed COM cleanup;
-- `ContextPack.ExcelWorkbookLayout.ps1` — authoritative workbook-layout PDF/PNG paths, renderer metrics და warnings orchestration;
-- `ContextPack.ExcelAutoFitLayout.ps1` — AutoFit PDF/PNG paths, renderer metrics და complete-PDF fallback warning;
-- `ContextPack.ExcelLayoutReport.ps1` — stable JSON array/schema, applied/skipped summary და warnings;
+- `powershell/Core/ContextPack.Environment.ps1` — Python/Tesseract/OCR environment;
+- `powershell/Core/ContextPack.Build.ps1` — atomic build/replacement/rollback/cleanup;
+- `powershell/Core/ContextPack.Manifest.ps1` — manifest writer;
+- `powershell/Excel/ContextPack.ExcelCom.ps1` — COM retry, უსაფრთხო Excel application configuration, read-only workbook open და lifecycle cleanup;
+- `powershell/Excel/ContextPack.ExcelDiagnostics.ps1` — manual page break და shapes diagnostics უსაფრთხო fallback-ებით;
+- `powershell/Excel/ContextPack.ExcelPagination.ps1` — horizontal page count, wide-sheet safeguard, AutoFit PrintArea/PageSetup application და cleanup;
+- `powershell/Excel/ContextPack.ExcelAutoFit.ps1` — AutoFit eligibility condition order და skip reasons Excel COM mutation-ის გარეშე;
+- `powershell/Excel/ContextPack.ExcelLayoutExport.ps1` — read-only workbook export, per-sheet diagnostics, AutoFit pagination და guaranteed COM cleanup;
+- `powershell/Excel/ContextPack.ExcelWorkbookLayout.ps1` — authoritative workbook-layout PDF/PNG paths, renderer metrics და warnings orchestration;
+- `powershell/Excel/ContextPack.ExcelAutoFitLayout.ps1` — AutoFit PDF/PNG paths, renderer metrics და complete-PDF fallback warning;
+- `powershell/Excel/ContextPack.ExcelLayoutReport.ps1` — stable JSON array/schema, applied/skipped summary და warnings;
 - root `excel-package.ps1` მხოლოდ extraction/layout/report/manifest/atomic-finalize orchestration-ს შეიცავს;
 - portable ZIP build უკვე აკოპირებს `contextpack/` Python package-ს.
 
@@ -101,7 +101,7 @@ git status --short --branch
 
 მიმდინარე სამუშაო branch-ის ამ მდგომარეობაში წარმატებით გადის:
 
-- 28 Python unit/integration test;
+- 29 Python unit/integration test;
 - `tests/test-static.ps1`;
 - `tests/test-excel-com.ps1` COM retry/configuration/read-only/cleanup tests;
 - `tests/test-excel-diagnostics.ps1` manual break/shapes counting, fallback და release tests;
@@ -137,17 +137,13 @@ E2E script თვითონ ქმნის უნიკალურ Windows T
 
 ## შემდეგი ზუსტი ეტაპი
 
-Excel PowerShell COM/layout refactor დასრულებულია: lifecycle, diagnostics, pagination, Workbook/AutoFit rendering, report aggregation და root orchestration ცალ-ცალკე იკითხება და ტესტირდება. Workbook vs AutoFit ქცევა, output package schema და source-safety კონტრაქტი უცვლელია.
+PowerShell-ის Core და Excel implementation მოდულები უკვე `powershell/Core/` და `powershell/Excel/` საქაღალდეებშია. Root-level public entry point-ები თავსებადობისთვის ადგილზე დარჩა. Installer recursive source ახალ საქაღალდეს ავტომატურად იღებს, portable builder კი `powershell/`-ს explicit code package-ად აკოპირებს.
 
-შემდეგ მცირე milestone-ში მხოლოდ installer/portable packaging QA ჩაატარე ახალი root-level PowerShell მოდულებისთვის:
+Installer QA გადაიდო მანამდე, სანამ საერთო processing foundation, Word v1 და PDF/Excel-ის დაგეგმილი დახვეწა დასტაბილურდება.
 
-1. დაადასტურე, რომ installer source და portable ZIP ყველა `ContextPack.Excel*.ps1` მოდულს შეიცავს;
-2. portable package-დან გაუშვი Excel `Both` smoke test დროებით fixture-ზე;
-3. clean per-user install-ზე გადაამოწმე GUI launch და ერთი Excel/PDF package;
-4. uninstall-ისას მომხმარებლის input/output ფაილებს არ შეეხო;
-5. release, `main` merge ან tag არ შექმნა მფლობელის ცალკე თანხმობის გარეშე.
+შემდეგ მცირე milestone-ში მხოლოდ საერთო immutable `DocumentProfile` მოდელი და მისი unit tests დაამატე. მან უნდა აღწეროს source-ის ტიპი, ზომა, hash, შესაძლო processor და უსაფრთხოების/ხარისხის საწყისი signals ისე, რომ არსებული Excel/PDF processing behavior ჯერ არ შეიცვალოს. ამის შემდეგ ცალკე milestone იქნება `ProcessingPlan`.
 
-ამის შემდეგ დაიწყე `pdf-package.ps1`-ის მცირე, ცალ-ცალკე შემოწმებადი პასუხისმგებლობებად დაყოფა. ყოველი milestone-ის შემდეგ გამოიყენე tests → commit → push.
+არ გადაიტანო ერთდროულად PDF/OCR/Word behavior და არ შეცვალო output schema ამ foundation milestone-ში. ყოველი milestone-ის შემდეგ გამოიყენე tests → commit → push.
 
 ## Excel-ის შემდეგ
 
@@ -205,8 +201,10 @@ inspect → plan → process → verify → summarize
 
 სრული დაგეგმილი რეფაქტორის დაახლოებით 60–65% დასრულებულია. დარჩენილია:
 
-- installer/portable smoke QA ახალი Excel მოდულებისთვის;
+- საერთო `DocumentProfile` და `ProcessingPlan` foundation;
 - PDF/OCR pipeline;
+- Word v1 processor;
+- Excel/PDF package summary, structured warnings და selective rendering;
 - intelligent profiling/planning layer;
 - package summary/severity/selective rendering;
 - ფორმატების გაფართოება;

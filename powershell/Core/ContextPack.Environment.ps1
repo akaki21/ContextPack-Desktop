@@ -1,7 +1,8 @@
-# Locate and prepare external tools required by processing pipelines.
+# Core: locate and prepare external tools required by processing pipelines.
+$script:ContextPackEnvironmentRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 function Get-ContextPackPython {
-    $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
+    $python = Join-Path $script:ContextPackEnvironmentRoot '.venv\Scripts\python.exe'
     if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
         throw "ContextPack environment is missing. Run .\setup.ps1 first."
     }
@@ -24,7 +25,7 @@ function Get-ContextPackTesseract {
 
 function Enable-ContextPackOcr {
     $tesseract = Get-ContextPackTesseract
-    $tessdata = Join-Path $PSScriptRoot 'tessdata'
+    $tessdata = Join-Path $script:ContextPackEnvironmentRoot 'tessdata'
     foreach ($language in @('eng', 'kat', 'osd')) {
         $model = Join-Path $tessdata ($language + '.traineddata')
         if (-not (Test-Path -LiteralPath $model -PathType Leaf)) { throw "OCR model is missing: $model. Run .\setup.ps1 again." }

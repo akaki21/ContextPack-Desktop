@@ -1,4 +1,4 @@
-# Reads Excel layout-risk signals without changing workbook or worksheet settings.
+# Excel: read layout-risk signals without changing workbook or worksheet settings.
 # Retry and COM release behavior comes from ContextPack.ExcelCom.ps1.
 
 function Get-ExcelManualPageBreakCount {

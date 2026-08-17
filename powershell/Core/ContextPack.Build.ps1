@@ -1,4 +1,5 @@
-# Create, finalize, replace, and clean package build directories safely.
+# Core: create, finalize, replace, and clean package build directories safely.
+$script:ContextPackBuildRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 function Get-ContextPackSafeName {
     param([Parameter(Mandatory = $true)][string]$Name)
@@ -17,7 +18,7 @@ function New-ContextPackBuild {
         [string]$OutputDirectory
     )
     $outputRoot = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-        Join-Path $PSScriptRoot 'output'
+        Join-Path $script:ContextPackBuildRoot 'output'
     } else {
         [System.IO.Path]::GetFullPath($OutputDirectory)
     }
@@ -43,7 +44,7 @@ function Complete-ContextPackBuild {
     param([Parameter(Mandatory = $true)]$Build)
     $buildPath = [System.IO.Path]::GetFullPath($Build.BuildPath)
     $finalPath = [System.IO.Path]::GetFullPath($Build.FinalPath)
-    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output')) }
+    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $script:ContextPackBuildRoot 'output')) }
     $outputPrefix = $outputRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
     if (-not $buildPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase) -or -not $finalPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw 'Refusing to finalize a package outside the output directory.'
@@ -69,7 +70,7 @@ function Remove-ContextPackBuild {
     param([Parameter(Mandatory = $true)]$Build)
     if (-not $Build -or -not $Build.BuildPath) { return }
     $buildPath = [System.IO.Path]::GetFullPath($Build.BuildPath)
-    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot 'output')) }
+    $outputRoot = if ($Build.OutputRoot) { [System.IO.Path]::GetFullPath($Build.OutputRoot) } else { [System.IO.Path]::GetFullPath((Join-Path $script:ContextPackBuildRoot 'output')) }
     $outputPrefix = $outputRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
     if ($buildPath.StartsWith($outputPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and (Split-Path -Leaf $buildPath).StartsWith('.contextpack-building-') -and (Test-Path -LiteralPath $buildPath)) {
         Remove-Item -LiteralPath $buildPath -Recurse -Force

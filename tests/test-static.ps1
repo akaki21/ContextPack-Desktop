@@ -11,15 +11,18 @@ foreach ($file in Get-ChildItem -LiteralPath $root -Filter '*.ps1' -Recurse | Wh
 
 $sourceText = Get-ChildItem -LiteralPath $root -File -Recurse | Where-Object { $_.Extension -in @('.ps1', '.py') -and $_.FullName -notmatch '[\\/]\.venv[\\/]' } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }
 if (($sourceText -join "`n") -match 'C:\\Users\\') { $failures += 'A user-specific Windows path was found.' }
+$coreModules = Join-Path $root 'powershell\Core'
+$excelModules = Join-Path $root 'powershell\Excel'
 $excelScript = Get-Content -LiteralPath (Join-Path $root 'excel-package.ps1') -Raw -Encoding UTF8
-$excelComScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelCom.ps1') -Raw -Encoding UTF8
-$excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
-$excelPaginationScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelPagination.ps1') -Raw -Encoding UTF8
-$excelAutoFitScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelAutoFit.ps1') -Raw -Encoding UTF8
-$excelLayoutExportScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelLayoutExport.ps1') -Raw -Encoding UTF8
-$excelWorkbookLayoutScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1') -Raw -Encoding UTF8
-$excelAutoFitLayoutScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelAutoFitLayout.ps1') -Raw -Encoding UTF8
-$excelLayoutReportScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelLayoutReport.ps1') -Raw -Encoding UTF8
+$excelComScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelCom.ps1') -Raw -Encoding UTF8
+$excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
+$excelPaginationScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelPagination.ps1') -Raw -Encoding UTF8
+$excelAutoFitScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelAutoFit.ps1') -Raw -Encoding UTF8
+$excelLayoutExportScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelLayoutExport.ps1') -Raw -Encoding UTF8
+$excelWorkbookLayoutScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelWorkbookLayout.ps1') -Raw -Encoding UTF8
+$excelAutoFitLayoutScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelAutoFitLayout.ps1') -Raw -Encoding UTF8
+$excelLayoutReportScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelLayoutReport.ps1') -Raw -Encoding UTF8
+if ($excelScript -notmatch 'powershell[\\/]Excel') { $failures += 'Excel packaging does not load helpers from the structured PowerShell directory.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelCom\.ps1') { $failures += 'Excel packaging does not load the COM lifecycle helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelDiagnostics\.ps1') { $failures += 'Excel packaging does not load the layout diagnostics helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelPagination\.ps1') { $failures += 'Excel packaging does not load the pagination helper.' }
@@ -65,10 +68,17 @@ $guiRunner = Get-Content -LiteralPath (Join-Path $root 'contextpack-gui-runner.p
 if ($guiRunner -notmatch 'contextpack_event') { $failures += 'The GUI runner does not emit structured events.' }
 if ($guiRunner -notmatch 'OperationCanceledException') { $failures += 'The GUI runner does not support cooperative cancellation.' }
 $commonScript = Get-Content -LiteralPath (Join-Path $root 'common.ps1') -Raw -Encoding UTF8
-$buildScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.Build.ps1') -Raw -Encoding UTF8
+$environmentScript = Get-Content -LiteralPath (Join-Path $coreModules 'ContextPack.Environment.ps1') -Raw -Encoding UTF8
+$buildScript = Get-Content -LiteralPath (Join-Path $coreModules 'ContextPack.Build.ps1') -Raw -Encoding UTF8
 if ($buildScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
+if ($commonScript -notmatch 'powershell[\\/]Core') { $failures += 'The common compatibility loader does not use the structured Core directory.' }
+if ($environmentScript -notmatch 'Split-Path\s+-Parent\s+\(Split-Path\s+-Parent\s+\$PSScriptRoot\)') { $failures += 'The moved environment module no longer resolves the project root.' }
+if ($buildScript -notmatch 'Split-Path\s+-Parent\s+\(Split-Path\s+-Parent\s+\$PSScriptRoot\)') { $failures += 'The moved build module no longer resolves the project root.' }
 foreach ($module in @('ContextPack.Environment.ps1', 'ContextPack.Build.ps1', 'ContextPack.Manifest.ps1')) {
     if ($commonScript -notmatch [regex]::Escape($module)) { $failures += "The common compatibility loader does not include $module." }
+}
+foreach ($oldRootModule in @('ContextPack.Environment.ps1', 'ContextPack.Build.ps1', 'ContextPack.Manifest.ps1', 'ContextPack.ExcelCom.ps1')) {
+    if (Test-Path -LiteralPath (Join-Path $root $oldRootModule)) { $failures += "A moved PowerShell module remains duplicated at the repository root: $oldRootModule" }
 }
 $installerScript = Get-Content -LiteralPath (Join-Path $root 'installer\ContextPack.iss') -Raw -Encoding UTF8
 if ($installerScript -match 'createallsubdirs') { $failures += 'Installer creates excluded directories and can break first-run setup.' }

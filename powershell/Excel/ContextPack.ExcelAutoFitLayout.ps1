@@ -1,7 +1,7 @@
-# Orchestrates the authoritative workbook-layout PDF/PNG output.
-# The supplied export action owns Excel COM work and must preserve workbook print settings.
+# Excel: orchestrate the optional AutoFit PDF/PNG output and renderer warnings.
+# The supplied export action owns Excel COM work and must never save the source workbook.
 
-function Invoke-ContextPackExcelPageRenderer {
+function Invoke-ContextPackExcelAutoFitPageRenderer {
     param(
         [Parameter(Mandatory = $true)][string]$Python,
         [Parameter(Mandatory = $true)][string]$Renderer,
@@ -13,10 +13,10 @@ function Invoke-ContextPackExcelPageRenderer {
     )
 
     & $Python $Renderer $PdfPath $PagesPath --dpi $Dpi --metrics $MetricsPath --max-pages $MaxPages | Out-Host
-    if ($LASTEXITCODE -ne 0) { throw 'Rendering workbook-layout PDF failed' }
+    if ($LASTEXITCODE -ne 0) { throw 'Rendering auto-layout PDF failed' }
 }
 
-function Invoke-ContextPackExcelWorkbookLayout {
+function Invoke-ContextPackExcelAutoFitLayout {
     param(
         [Parameter(Mandatory = $true)][string]$RenderedDirectory,
         [Parameter(Mandatory = $true)][string]$Python,
@@ -26,19 +26,19 @@ function Invoke-ContextPackExcelWorkbookLayout {
         [Parameter(Mandatory = $true)][scriptblock]$ExportPdf
     )
 
-    $layoutDirectory = Join-Path $RenderedDirectory 'workbook-layout'
+    $layoutDirectory = Join-Path $RenderedDirectory 'auto-layout'
     $pagesDirectory = Join-Path $layoutDirectory 'pages'
     New-Item -ItemType Directory -Path $pagesDirectory -Force | Out-Null
     $pdfPath = Join-Path $layoutDirectory 'workbook.pdf'
     $renderMetricsPath = Join-Path $layoutDirectory 'page-render-metrics.json'
 
     $diagnostics = @(& $ExportPdf $pdfPath)
-    Invoke-ContextPackExcelPageRenderer -Python $Python -Renderer $Renderer -PdfPath $pdfPath -PagesPath $pagesDirectory -MetricsPath $renderMetricsPath -Dpi $Dpi -MaxPages $MaxRenderedPages
+    Invoke-ContextPackExcelAutoFitPageRenderer -Python $Python -Renderer $Renderer -PdfPath $pdfPath -PagesPath $pagesDirectory -MetricsPath $renderMetricsPath -Dpi $Dpi -MaxPages $MaxRenderedPages
 
     $warnings = @()
     $renderMetrics = Get-Content -LiteralPath $renderMetricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($renderMetrics.render_skipped) {
-        $warnings += "Workbook-layout PNG rendering skipped: $($renderMetrics.reason) The complete PDF is preserved."
+        $warnings += "Auto-layout PNG rendering skipped: $($renderMetrics.reason) The complete PDF is preserved."
     }
 
     return [pscustomobject]@{

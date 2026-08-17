@@ -11,6 +11,11 @@ function Assert-CommonTest {
     if (-not $Condition) { $script:failures += $Message }
 }
 
+Assert-CommonTest ($script:ContextPackEnvironmentRoot -eq $root) 'The moved environment module resolved the wrong project root.'
+Assert-CommonTest ($script:ContextPackBuildRoot -eq $root) 'The moved build module resolved the wrong project root.'
+$expectedPython = Join-Path $root '.venv\Scripts\python.exe'
+Assert-CommonTest ((Get-ContextPackPython) -eq $expectedPython) 'The moved environment module resolved the wrong Python runtime.'
+
 try {
     New-Item -ItemType Directory -Path $work, $output -Force | Out-Null
     $sourceA = Join-Path $work 'source-a.txt'
