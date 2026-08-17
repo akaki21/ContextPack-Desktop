@@ -77,6 +77,7 @@ git status --short --branch
 - `ContextPack.Build.ps1` — atomic build/replacement/rollback/cleanup;
 - `ContextPack.Manifest.ps1` — manifest writer;
 - `ContextPack.ExcelCom.ps1` — COM retry, უსაფრთხო Excel application configuration, read-only workbook open და lifecycle cleanup;
+- `ContextPack.ExcelDiagnostics.ps1` — manual page break და shapes diagnostics უსაფრთხო fallback-ებით;
 - portable ZIP build უკვე აკოპირებს `contextpack/` Python package-ს.
 
 ### Excel Python extractor
@@ -96,6 +97,7 @@ git status --short --branch
 - 28 Python unit/integration test;
 - `tests/test-static.ps1`;
 - `tests/test-excel-com.ps1` COM retry/configuration/read-only/cleanup tests;
+- `tests/test-excel-diagnostics.ps1` manual break/shapes counting, fallback და release tests;
 - `tests/test-common.ps1` atomic build/manifest tests;
 - `tests/test-e2e.ps1 -RequireExcel` სრული E2E:
   - Markdown conversion;
@@ -121,9 +123,9 @@ E2E script თვითონ ქმნის უნიკალურ Windows T
 
 ## შემდეგი ზუსტი ეტაპი
 
-Excel COM lifecycle-ის პირველი milestone დასრულებულია: retry, release helper, უსაფრთხო application configuration, read-only open და workbook/worksheet/application cleanup `ContextPack.ExcelCom.ps1`-შია გამოყოფილი.
+Excel COM lifecycle და layout-risk diagnostics milestones დასრულებულია. Retry/application/read-only/cleanup პასუხისმგებლობები `ContextPack.ExcelCom.ps1`-შია, ხოლო manual page break და shapes counting — `ContextPack.ExcelDiagnostics.ps1`-ში.
 
-შემდეგ მცირე milestone-ში მხოლოდ manual page break და shapes diagnostics გამოყავი `excel-package.ps1`-დან. Layout გადაწყვეტილებები არ შეცვალო და არ შეეხო:
+შემდეგ მცირე milestone-ში მხოლოდ Workbook layout export-ის orchestration გამოყავი `excel-package.ps1`-დან. AutoFit გადაწყვეტილებები არ შეცვალო და არ შეეხო:
 
 - Workbook vs AutoFit ქცევა;
 - horizontal pagination;
@@ -138,14 +140,13 @@ Excel COM lifecycle-ის პირველი milestone დასრულე
 
 ## Excel COM-ის შემდგომი ეტაპები
 
-COM lifecycle-ის შემდეგ ცალკე მცირე milestone-ებად:
+COM lifecycle-ისა და diagnostics-ის შემდეგ ცალკე მცირე milestone-ებად:
 
-1. manual page break და shapes diagnostics;
-2. Workbook layout export;
-3. AutoFit layout გადაწყვეტილებები;
-4. horizontal pagination და wide-sheet safeguards;
-5. `print-layout-report.json` writing;
-6. root `excel-package.ps1`-ის საბოლოო orchestration script-ად შემცირება.
+1. Workbook layout export;
+2. AutoFit layout გადაწყვეტილებები;
+3. horizontal pagination და wide-sheet safeguards;
+4. `print-layout-report.json` writing;
+5. root `excel-package.ps1`-ის საბოლოო orchestration script-ად შემცირება.
 
 ყოველი milestone-ის შემდეგ tests → commit → push.
 

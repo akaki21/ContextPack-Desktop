@@ -13,12 +13,17 @@ $sourceText = Get-ChildItem -LiteralPath $root -File -Recurse | Where-Object { $
 if (($sourceText -join "`n") -match 'C:\\Users\\') { $failures += 'A user-specific Windows path was found.' }
 $excelScript = Get-Content -LiteralPath (Join-Path $root 'excel-package.ps1') -Raw -Encoding UTF8
 $excelComScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelCom.ps1') -Raw -Encoding UTF8
+$excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
 if ($excelScript -notmatch 'ContextPack\.ExcelCom\.ps1') { $failures += 'Excel packaging does not load the COM lifecycle helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelDiagnostics\.ps1') { $failures += 'Excel packaging does not load the layout diagnostics helper.' }
 if ($excelComScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
 if ($excelComScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
 if ($excelComScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Automatic external-link updates are not disabled.' }
 if ($excelComScript -notmatch 'function\s+Release-ExcelComObject') { $failures += 'The shared Excel COM release helper is missing.' }
 if ($excelScript -match 'Marshal\]::ReleaseComObject') { $failures += 'Excel packaging bypasses the shared COM release helper.' }
+if ($excelDiagnosticsScript -notmatch 'Get-ExcelManualPageBreakCount') { $failures += 'Excel manual page-break diagnostics are missing.' }
+if ($excelDiagnosticsScript -notmatch 'Get-ExcelShapeCount') { $failures += 'Excel shape diagnostics are missing.' }
+if ($excelDiagnosticsScript -notmatch '-4135') { $failures += 'Excel manual page-break type detection is missing.' }
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
 if ($excelScript -notmatch "RenderMode\s*=\s*'Both'") { $failures += 'Safe dual Excel rendering is not the default.' }
 if ($excelScript -notmatch 'Ceiling\(\[int\]\$metric\.populated_column_span\s*/\s*8\.0\)') { $failures += 'AutoFit does not adapt horizontal pagination for readability.' }
@@ -48,4 +53,5 @@ if ($installerScript -notmatch 'PrivilegesRequired=lowest') { $failures += 'Inst
 
 if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
 & (Join-Path $PSScriptRoot 'test-excel-com.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-diagnostics.ps1')
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

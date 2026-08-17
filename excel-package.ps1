@@ -10,6 +10,7 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
 . (Join-Path $root 'ContextPack.ExcelCom.ps1')
+. (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
 $renderer = Join-Path $root 'render-pdf-pages.py'
@@ -20,44 +21,6 @@ if ($extension -notin @('.xlsx', '.xlsm', '.xltx', '.xltm')) { throw 'Supported 
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 $build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_excel_package') -OutputDirectory $OutputDirectory
-
-function Get-ManualPageBreakCount {
-    param($Worksheet, [string]$PropertyName)
-    $manualCount = 0
-    try {
-        if ($PropertyName -eq 'HPageBreaks') {
-            $breakCount = [int](Invoke-ExcelRetry { $Worksheet.HPageBreaks.Count })
-        } else {
-            $breakCount = [int](Invoke-ExcelRetry { $Worksheet.VPageBreaks.Count })
-        }
-        for ($breakIndex = 1; $breakIndex -le $breakCount; $breakIndex++) {
-            $pageBreak = $null
-            try {
-                if ($PropertyName -eq 'HPageBreaks') {
-                    $pageBreak = Invoke-ExcelRetry { $Worksheet.HPageBreaks.Item($breakIndex) }
-                } else {
-                    $pageBreak = Invoke-ExcelRetry { $Worksheet.VPageBreaks.Item($breakIndex) }
-                }
-                if ([int](Invoke-ExcelRetry { $pageBreak.Type }) -eq -4135) { $manualCount++ }
-            } finally {
-                Release-ExcelComObject $pageBreak
-            }
-        }
-        return $manualCount
-    } catch {
-        return 0
-    }
-}
-
-function Get-ComCollectionCount {
-    param($Owner, [string]$PropertyName)
-    try {
-        if ($PropertyName -eq 'Shapes') { return [int](Invoke-ExcelRetry { $Owner.Shapes.Count }) }
-        return 0
-    } catch {
-        return 0
-    }
-}
 
 function Export-ExcelLayout {
     param(
@@ -86,9 +49,9 @@ function Export-ExcelLayout {
                 try { $printAreaBefore = [string]$worksheet.PageSetup.PrintArea } catch { }
                 try { $titleRows = [string]$worksheet.PageSetup.PrintTitleRows } catch { }
                 try { $titleColumns = [string]$worksheet.PageSetup.PrintTitleColumns } catch { }
-                $horizontalBreaks = Get-ManualPageBreakCount $worksheet 'HPageBreaks'
-                $verticalBreaks = Get-ManualPageBreakCount $worksheet 'VPageBreaks'
-                $shapeCount = Get-ComCollectionCount $worksheet 'Shapes'
+                $horizontalBreaks = Get-ExcelManualPageBreakCount $worksheet 'HPageBreaks'
+                $verticalBreaks = Get-ExcelManualPageBreakCount $worksheet 'VPageBreaks'
+                $shapeCount = Get-ExcelShapeCount $worksheet
                 $status = if ($Layout -eq 'Workbook') { 'preserved' } else { 'skipped' }
                 $reasons = @()
                 $printAreaAfter = $printAreaBefore

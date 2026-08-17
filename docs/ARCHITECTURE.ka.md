@@ -25,6 +25,7 @@
 - `ContextPack.Build.ps1` — atomic build, უსაფრთხო replacement/rollback და cleanup საზღვრები.
 - `ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
 - `ContextPack.ExcelCom.ps1` — Excel COM retry, უსაფრთხოების პარამეტრები, workbook-ის read-only გახსნა და COM lifecycle cleanup.
+- `ContextPack.ExcelDiagnostics.ps1` — manual page break-ებისა და drawing object-ების read-only დათვლა AutoFit safety decisions-ისთვის.
 
 ## Python-ის გამოყოფილი საფუძველი
 
