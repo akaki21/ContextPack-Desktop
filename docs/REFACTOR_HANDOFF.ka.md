@@ -78,6 +78,7 @@ git status --short --branch
 - `ContextPack.Manifest.ps1` — manifest writer;
 - `ContextPack.ExcelCom.ps1` — COM retry, უსაფრთხო Excel application configuration, read-only workbook open და lifecycle cleanup;
 - `ContextPack.ExcelDiagnostics.ps1` — manual page break და shapes diagnostics უსაფრთხო fallback-ებით;
+- `ContextPack.ExcelPagination.ps1` — horizontal page count, wide-sheet safeguard, AutoFit PrintArea/PageSetup application და cleanup;
 - `ContextPack.ExcelAutoFit.ps1` — AutoFit eligibility condition order და skip reasons Excel COM mutation-ის გარეშე;
 - `ContextPack.ExcelWorkbookLayout.ps1` — authoritative workbook-layout PDF/PNG paths, renderer metrics და warnings orchestration;
 - portable ZIP build უკვე აკოპირებს `contextpack/` Python package-ს.
@@ -100,6 +101,7 @@ git status --short --branch
 - `tests/test-static.ps1`;
 - `tests/test-excel-com.ps1` COM retry/configuration/read-only/cleanup tests;
 - `tests/test-excel-diagnostics.ps1` manual break/shapes counting, fallback და release tests;
+- `tests/test-excel-pagination.ps1` 1/8/9/16/17/24/60 boundaries, 60/61/custom limit, PageSetup და cleanup tests;
 - `tests/test-excel-autofit.ps1` hidden/empty/wide/drawing/manual-break precedence და eligible-sheet tests;
 - `tests/test-excel-workbook-layout.ps1` output paths, renderer arguments, warnings და failure propagation tests;
 - `tests/test-common.ps1` atomic build/manifest tests;
@@ -107,6 +109,7 @@ git status --short --branch
   - Markdown conversion;
   - PDF package და PNG render;
   - Microsoft Excel COM Workbook + AutoFit render;
+  - 17 populated columns split across 3 horizontal AutoFit pages;
   - Excel formulas/cached values;
   - image OCR;
   - scanned PDF OCR;
@@ -127,9 +130,9 @@ E2E script თვითონ ქმნის უნიკალურ Windows T
 
 ## შემდეგი ზუსტი ეტაპი
 
-Excel COM lifecycle, layout-risk diagnostics, Workbook orchestration და AutoFit eligibility milestones დასრულებულია. AutoFit-ის skip-condition order და reasons `ContextPack.ExcelAutoFit.ps1`-შია გამოყოფილი, ხოლო რეალური PageSetup mutation ჯერ `excel-package.ps1`-ში რჩება.
+Excel COM lifecycle, layout-risk diagnostics, Workbook orchestration, AutoFit eligibility და horizontal pagination milestones დასრულებულია. 8-column page planning, wide-sheet limit და PrintArea/PageSetup application `ContextPack.ExcelPagination.ps1`-შია გამოყოფილი.
 
-შემდეგ მცირე milestone-ში მხოლოდ horizontal pagination და wide-sheet safeguards გამოყავი `excel-package.ps1`-დან. არ შეცვალო და არ შეეხო:
+შემდეგ მცირე milestone-ში მხოლოდ `print-layout-report.json` writing გამოყავი `excel-package.ps1`-დან. არ შეცვალო და არ შეეხო:
 
 - Workbook vs AutoFit ქცევა;
 - horizontal pagination;
@@ -144,11 +147,10 @@ Excel COM lifecycle, layout-risk diagnostics, Workbook orchestration და Auto
 
 ## Excel COM-ის შემდგომი ეტაპები
 
-AutoFit eligibility-ის შემდეგ ცალკე მცირე milestone-ებად:
+Pagination-ის შემდეგ ცალკე მცირე milestone-ებად:
 
-1. horizontal pagination და wide-sheet safeguards;
-2. `print-layout-report.json` writing;
-3. root `excel-package.ps1`-ის საბოლოო orchestration script-ად შემცირება.
+1. `print-layout-report.json` writing;
+2. root `excel-package.ps1`-ის საბოლოო orchestration script-ად შემცირება.
 
 ყოველი milestone-ის შემდეგ tests → commit → push.
 

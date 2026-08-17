@@ -12,12 +12,13 @@ function Get-ContextPackExcelAutoFitDecision {
     )
 
     $reason = $null
+    $wideSheetReason = $null
     if (-not $Visible) {
         $reason = 'sheet is hidden'
     } elseif (-not $Metric -or [int]$Metric.max_row -eq 0 -or [int]$Metric.max_column -eq 0) {
         $reason = 'sheet has no populated cells'
-    } elseif ([int]$Metric.populated_column_span -gt $MaxAutoFitColumns) {
-        $reason = "populated range exceeds the $MaxAutoFitColumns-column AutoFit safety limit"
+    } elseif ($null -ne ($wideSheetReason = Get-ContextPackExcelWideSheetSkipReason -PopulatedColumnSpan ([int]$Metric.populated_column_span) -MaxAutoFitColumns $MaxAutoFitColumns)) {
+        $reason = $wideSheetReason
     } elseif ([int]$Metric.charts -gt 0 -or [int]$Metric.images -gt 0 -or $ShapeCount -gt 0) {
         $reason = 'sheet contains charts, images, or drawing objects that could fall outside an inferred print area'
     } elseif (($HorizontalPageBreaks + $VerticalPageBreaks) -gt 0) {

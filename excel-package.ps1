@@ -11,6 +11,7 @@ $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
 . (Join-Path $root 'ContextPack.ExcelCom.ps1')
 . (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
+. (Join-Path $root 'ContextPack.ExcelPagination.ps1')
 . (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
 . (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
 $python = Get-ContextPackPython
@@ -63,27 +64,11 @@ function Export-ExcelLayout {
                     $autoFitDecision = Get-ContextPackExcelAutoFitDecision -Visible $visible -Metric $metric -ShapeCount $shapeCount -HorizontalPageBreaks $horizontalBreaks -VerticalPageBreaks $verticalBreaks -MaxAutoFitColumns $MaxAutoFitColumns
                     $reasons += @($autoFitDecision.Reasons)
                     if ($autoFitDecision.CanApply) {
-                        $startCell = $null
-                        $endCell = $null
-                        $usedDataRange = $null
-                        try {
-                            $startCell = $worksheet.Cells([int]$metric.min_row, [int]$metric.min_column)
-                            $endCell = $worksheet.Cells([int]$metric.max_row, [int]$metric.max_column)
-                            $usedDataRange = $worksheet.Range($startCell, $endCell)
-                            $printAreaAfter = [string]$usedDataRange.Address()
-                            Invoke-ExcelRetry { $worksheet.PageSetup.PrintArea = $printAreaAfter } | Out-Null
-                            Invoke-ExcelRetry { $worksheet.PageSetup.Zoom = $false } | Out-Null
-                            $fitToPagesWide = [Math]::Max(1, [Math]::Ceiling([int]$metric.populated_column_span / 8.0))
-                            Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesWide = $fitToPagesWide } | Out-Null
-                            Invoke-ExcelRetry { $worksheet.PageSetup.FitToPagesTall = $false } | Out-Null
-                            $status = 'applied'
-                            if ($fitToPagesWide -gt 1) { $reasons += "wide sheet split across $fitToPagesWide pages to preserve readability" }
-                            if ([int]$metric.merged_ranges -gt 0) { $reasons += 'merged cells are present; verify page boundaries visually' }
-                        } finally {
-                            Release-ExcelComObject $usedDataRange
-                            Release-ExcelComObject $startCell
-                            Release-ExcelComObject $endCell
-                        }
+                        $pagination = Set-ContextPackExcelAutoFitPagination -Worksheet $worksheet -Metric $metric
+                        $printAreaAfter = $pagination.PrintArea
+                        $fitToPagesWide = $pagination.FitToPagesWide
+                        $reasons += @($pagination.Notes)
+                        $status = 'applied'
                     }
                 }
 

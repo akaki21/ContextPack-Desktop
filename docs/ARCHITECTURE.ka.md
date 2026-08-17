@@ -26,6 +26,7 @@
 - `ContextPack.Manifest.ps1` — source hash-ის, outputs-ის, settings-ისა და warnings-ის manifest-ში ჩაწერა.
 - `ContextPack.ExcelCom.ps1` — Excel COM retry, უსაფრთხოების პარამეტრები, workbook-ის read-only გახსნა და COM lifecycle cleanup.
 - `ContextPack.ExcelDiagnostics.ps1` — manual page break-ებისა და drawing object-ების read-only დათვლა AutoFit safety decisions-ისთვის.
+- `ContextPack.ExcelPagination.ps1` — 8-სვეტიანი horizontal pagination, wide-sheet limit, PrintArea/PageSetup application და COM cleanup.
 - `ContextPack.ExcelAutoFit.ps1` — hidden/empty/wide/drawing/manual-break პირობების pure AutoFit eligibility გადაწყვეტილება.
 - `ContextPack.ExcelWorkbookLayout.ps1` — ავტორის workbook-layout PDF/PNG export-ის საქაღალდეები, renderer metrics და warning orchestration.
 

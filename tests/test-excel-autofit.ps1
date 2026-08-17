@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+. (Join-Path $root 'ContextPack.ExcelPagination.ps1')
 . (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
 
 function Assert-ExcelAutoFitTest {

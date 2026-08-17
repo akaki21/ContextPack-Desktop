@@ -5,6 +5,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -49,6 +50,12 @@ def create_workbook(path: Path) -> None:
     sheet.sheet_properties.pageSetUpPr.fitToPage = True
     for column, width in {"A": 24, "B": 12, "C": 14, "D": 14}.items():
         sheet.column_dimensions[column].width = width
+    for column_index in range(5, 18):
+        column = get_column_letter(column_index)
+        sheet.cell(row=1, column=column_index, value=f"Field {column_index}").font = Font(bold=True)
+        sheet.cell(row=2, column=column_index, value=f"Value {column_index}-A")
+        sheet.cell(row=3, column=column_index, value=f"Value {column_index}-B")
+        sheet.column_dimensions[column].width = 12
     workbook.save(path)
 
 

@@ -66,6 +66,8 @@ try {
         $autoLayoutDiagnostics = @($layoutReport | Where-Object { $_.layout -eq 'AutoFit' })
         Assert-True ($autoLayoutDiagnostics.Count -eq 1) 'Excel AutoFit diagnostics are missing.'
         Assert-True ($autoLayoutDiagnostics[0].status -eq 'applied') 'Excel AutoFit was not applied to the safe fixture.'
+        Assert-True ($autoLayoutDiagnostics[0].fit_to_pages_wide -eq 3) 'Excel AutoFit did not split the 17-column fixture across three horizontal pages.'
+        Assert-True (($autoLayoutDiagnostics[0].reasons -join ' ') -match 'split across 3 pages') 'Excel AutoFit pagination guidance is missing.'
     } else {
         $excelPackage = Join-Path $output 'sample_excel_extracted'
         & $python (Join-Path $root 'extract-excel-package.py') $excelFixture $excelPackage
