@@ -97,11 +97,21 @@ git status --short --branch
 - `contextpack/excel/reporting.py` — Markdown/quality/metrics output;
 - `contextpack/excel/extractor.py` — orchestration და workbook handle-ების `try/finally` cleanup.
 
+### საერთო document foundation
+
+- `contextpack/core/document_profile.py` — immutable source profile;
+- profile იყენებს არსებულ `classify_input()` routing-ს და ცალკე processor mapping-ს არ ქმნის;
+- SHA-256 ითვლება bounded streaming chunks-ით;
+- local absolute path მხოლოდ internal ველია და `public_metadata()`-ში არ ხვდება;
+- `.docx/.docm/.doc`, თანამედროვე/ძველი Excel, PDF, image და generic document format family-ები ცალ-ცალკე აღიწერება;
+- profiler Office/PDF application-ს არ ხსნის და source ცვლილებას size/mtime snapshot-ით აღმოაჩენს.
+
 ## მიმდინარე შემოწმებული baseline
 
 მიმდინარე სამუშაო branch-ის ამ მდგომარეობაში წარმატებით გადის:
 
-- 29 Python unit/integration test;
+- 37 Python unit/integration test;
+- `tests/test_document_profile.py` routing/family, streaming hash, immutability, private path, source mutation და invalid-input tests;
 - `tests/test-static.ps1`;
 - `tests/test-excel-com.ps1` COM retry/configuration/read-only/cleanup tests;
 - `tests/test-excel-diagnostics.ps1` manual break/shapes counting, fallback და release tests;
@@ -141,19 +151,21 @@ PowerShell-ის Core და Excel implementation მოდულები უ�
 
 Installer QA გადაიდო მანამდე, სანამ საერთო processing foundation, Word v1 და PDF/Excel-ის დაგეგმილი დახვეწა დასტაბილურდება.
 
-შემდეგ მცირე milestone-ში მხოლოდ საერთო immutable `DocumentProfile` მოდელი და მისი unit tests დაამატე. მან უნდა აღწეროს source-ის ტიპი, ზომა, hash, შესაძლო processor და უსაფრთხოების/ხარისხის საწყისი signals ისე, რომ არსებული Excel/PDF processing behavior ჯერ არ შეიცვალოს. ამის შემდეგ ცალკე milestone იქნება `ProcessingPlan`.
+საერთო immutable `DocumentProfile` დასრულებულია და არსებული Excel/PDF processing behavior-ში ჯერ ჩართული არ არის.
 
-არ გადაიტანო ერთდროულად PDF/OCR/Word behavior და არ შეცვალო output schema ამ foundation milestone-ში. ყოველი milestone-ის შემდეგ გამოიყენე tests → commit → push.
+შემდეგ მცირე milestone-ში მხოლოდ immutable `ProcessingPlan` მოდელი და pure planning function დაამატე. მან `DocumentProfile`-იდან უნდა დააბრუნოს processor, დაგეგმილი ნაბიჯების ordered tuple და საჭირო optional capabilities, მაგრამ არც PowerShell processor გაუშვას, არც output შექმნას და არც GUI/manifest schema შეცვალოს.
+
+არ გადაიტანო ერთდროულად PDF/OCR/Word behavior და არ შეცვალო output schema ამ planning milestone-ში. ყოველი milestone-ის შემდეგ გამოიყენე tests → commit → push.
 
 ## Excel-ის შემდეგ
 
-1. `pdf-package.ps1` დაყავი inspection/OCR/extraction/rendering/quality/orchestration პასუხისმგებლობებად;
-2. დაამატე ერთიანი `DocumentProfile`;
-3. დაამატე ავტომატური `ProcessingPlan`;
+1. დაამატე ავტომატური `ProcessingPlan`;
+2. `pdf-package.ps1` დაყავი inspection/OCR/extraction/rendering/quality/orchestration პასუხისმგებლობებად;
+3. დაამატე Word v1 processor `.docx`-ისთვის;
 4. ყველა package-ში შექმენი მოკლე `package-summary.md`;
 5. warnings-ს მიეცი severity/location/type;
 6. დაამატე selective rendering დიდი ფაილებისთვის;
-7. მხოლოდ ამის შემდეგ შექმენი Word/PowerPoint/CSV და სხვა ფორმატების ცალკე processors.
+7. მხოლოდ ამის შემდეგ გააფართოვე Word legacy/macro და PowerPoint/CSV processors.
 
 სასურველი საერთო processor contract:
 
@@ -201,12 +213,10 @@ inspect → plan → process → verify → summarize
 
 სრული დაგეგმილი რეფაქტორის დაახლოებით 60–65% დასრულებულია. დარჩენილია:
 
-- საერთო `DocumentProfile` და `ProcessingPlan` foundation;
+- საერთო `ProcessingPlan` foundation;
 - PDF/OCR pipeline;
 - Word v1 processor;
 - Excel/PDF package summary, structured warnings და selective rendering;
-- intelligent profiling/planning layer;
-- package summary/severity/selective rendering;
 - ფორმატების გაფართოება;
 - installer/portable final QA;
 - PR, `main` merge და ახალი release.

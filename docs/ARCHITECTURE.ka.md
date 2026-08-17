@@ -37,6 +37,7 @@
 
 - `contextpack/job_options.py` — ერთი დავალების პარამეტრების უცვლელი მონაცემთა მოდელი.
 - `contextpack/file_types.py` — input-ისთვის შესაბამისი processing route-ის არჩევა.
+- `contextpack/core/document_profile.py` — source-ის immutable internal profile, streaming SHA-256, format family და საწყისი safety/quality signals.
 - `contextpack/validation.py` — GUI-სგან და ენისგან დამოუკიდებელი validation წესები.
 - `contextpack/paths.py` — პროექტის, runner-ისა და ნაგულისხმევი output-ის სტაბილური მისამართები.
 - `contextpack/runner_command.py` — PowerShell runner-ისთვის shell parsing-ის გარეშე უსაფრთხო არგუმენტების აგება.
