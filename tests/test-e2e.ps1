@@ -53,13 +53,19 @@ try {
     $excelAvailable = $null -ne [Type]::GetTypeFromProgID('Excel.Application')
     if ($RequireExcel -and -not $excelAvailable) { throw 'Microsoft Excel is required for this E2E run but was not detected.' }
     $excelFixture = Join-Path $fixtures 'sample.xlsx'
+    $excelSourceHash = (Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash
     if ($excelAvailable) {
-        & (Join-Path $root 'contextpack.ps1') $excelFixture -Mode Full -Dpi 96 -ExcelRenderMode Workbook -OutputDirectory $output
+        & (Join-Path $root 'contextpack.ps1') $excelFixture -Mode Full -Dpi 96 -ExcelRenderMode Both -OutputDirectory $output
         $excelPackage = Join-Path $output 'sample_excel_package'
         $excelManifest = Read-JsonFile (Join-Path $excelPackage 'manifest.json')
         Assert-True ($excelManifest.package_type -eq 'excel') 'Excel manifest has the wrong package type.'
-        Assert-True ($excelManifest.settings.render_mode -eq 'Workbook') 'Excel render mode was not recorded.'
-        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\workbook-layout\pages\page-001.png') -PathType Leaf) 'Excel rendered page is missing.'
+        Assert-True ($excelManifest.settings.render_mode -eq 'Both') 'Excel render mode was not recorded.'
+        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\workbook-layout\pages\page-001.png') -PathType Leaf) 'Excel workbook-layout page is missing.'
+        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\auto-layout\pages\page-001.png') -PathType Leaf) 'Excel auto-layout page is missing.'
+        $layoutReport = @(Read-JsonFile (Join-Path $excelPackage 'print-layout-report.json'))
+        $autoLayoutDiagnostics = @($layoutReport | Where-Object { $_.layout -eq 'AutoFit' })
+        Assert-True ($autoLayoutDiagnostics.Count -eq 1) 'Excel AutoFit diagnostics are missing.'
+        Assert-True ($autoLayoutDiagnostics[0].status -eq 'applied') 'Excel AutoFit was not applied to the safe fixture.'
     } else {
         $excelPackage = Join-Path $output 'sample_excel_extracted'
         & $python (Join-Path $root 'extract-excel-package.py') $excelFixture $excelPackage
@@ -67,6 +73,7 @@ try {
     }
     $formulaText = Get-Content -LiteralPath (Join-Path $excelPackage 'sheets-data\01-Estimate\formulas.md') -Raw -Encoding UTF8
     Assert-True ($formulaText -match '=B2\*C2') 'Excel formula B2*C2 was not preserved.'
+    Assert-True ((Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash -eq $excelSourceHash) 'Excel processing changed the source workbook.'
     Assert-True ((Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $excelPackage 'sample.xlsx') -Algorithm SHA256).Hash) 'Packaged workbook differs from the source.'
 
     if (-not $SkipOcr) {

@@ -14,9 +14,11 @@ if (($sourceText -join "`n") -match 'C:\\Users\\') { $failures += 'A user-specif
 $excelScript = Get-Content -LiteralPath (Join-Path $root 'excel-package.ps1') -Raw -Encoding UTF8
 $excelComScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelCom.ps1') -Raw -Encoding UTF8
 $excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
+$excelAutoFitScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelAutoFit.ps1') -Raw -Encoding UTF8
 $excelWorkbookLayoutScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1') -Raw -Encoding UTF8
 if ($excelScript -notmatch 'ContextPack\.ExcelCom\.ps1') { $failures += 'Excel packaging does not load the COM lifecycle helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelDiagnostics\.ps1') { $failures += 'Excel packaging does not load the layout diagnostics helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelAutoFit\.ps1') { $failures += 'Excel packaging does not load the AutoFit decision helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelWorkbookLayout\.ps1') { $failures += 'Excel packaging does not load the workbook-layout orchestration helper.' }
 if ($excelComScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
 if ($excelComScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
@@ -26,6 +28,7 @@ if ($excelScript -match 'Marshal\]::ReleaseComObject') { $failures += 'Excel pac
 if ($excelDiagnosticsScript -notmatch 'Get-ExcelManualPageBreakCount') { $failures += 'Excel manual page-break diagnostics are missing.' }
 if ($excelDiagnosticsScript -notmatch 'Get-ExcelShapeCount') { $failures += 'Excel shape diagnostics are missing.' }
 if ($excelDiagnosticsScript -notmatch '-4135') { $failures += 'Excel manual page-break type detection is missing.' }
+if ($excelAutoFitScript -notmatch 'Get-ContextPackExcelAutoFitDecision') { $failures += 'Excel AutoFit decision helper is missing.' }
 if ($excelWorkbookLayoutScript -notmatch 'Join-Path\s+\$RenderedDirectory\s+''workbook-layout''') { $failures += 'The authoritative workbook-layout output path changed.' }
 if ($excelWorkbookLayoutScript -notmatch 'complete PDF is preserved') { $failures += 'Workbook rendering no longer documents the complete-PDF fallback.' }
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
@@ -59,5 +62,6 @@ if ($installerScript -notmatch 'PrivilegesRequired=lowest') { $failures += 'Inst
 if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
 & (Join-Path $PSScriptRoot 'test-excel-com.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-diagnostics.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-autofit.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-workbook-layout.ps1')
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

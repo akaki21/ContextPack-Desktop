@@ -11,6 +11,7 @@ $root = $PSScriptRoot
 . (Join-Path $root 'common.ps1')
 . (Join-Path $root 'ContextPack.ExcelCom.ps1')
 . (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
+. (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
 . (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
@@ -59,12 +60,9 @@ function Export-ExcelLayout {
                 $fitToPagesWide = $null
 
                 if ($Layout -eq 'AutoFit') {
-                    if (-not $visible) { $reasons += 'sheet is hidden' }
-                    elseif (-not $metric -or [int]$metric.max_row -eq 0 -or [int]$metric.max_column -eq 0) { $reasons += 'sheet has no populated cells' }
-                    elseif ([int]$metric.populated_column_span -gt $MaxAutoFitColumns) { $reasons += "populated range exceeds the $MaxAutoFitColumns-column AutoFit safety limit" }
-                    elseif ([int]$metric.charts -gt 0 -or [int]$metric.images -gt 0 -or $shapeCount -gt 0) { $reasons += 'sheet contains charts, images, or drawing objects that could fall outside an inferred print area' }
-                    elseif (($horizontalBreaks + $verticalBreaks) -gt 0) { $reasons += 'sheet contains manual page breaks' }
-                    else {
+                    $autoFitDecision = Get-ContextPackExcelAutoFitDecision -Visible $visible -Metric $metric -ShapeCount $shapeCount -HorizontalPageBreaks $horizontalBreaks -VerticalPageBreaks $verticalBreaks -MaxAutoFitColumns $MaxAutoFitColumns
+                    $reasons += @($autoFitDecision.Reasons)
+                    if ($autoFitDecision.CanApply) {
                         $startCell = $null
                         $endCell = $null
                         $usedDataRange = $null
