@@ -36,7 +36,7 @@ ContextPack Desktop უნდა იყოს ლოკალური, მა�
 
 - repository: `https://github.com/akaki21/ContextPack-Desktop.git`
 - სამუშაო ბრენჩი: `refactor/readable-foundation`
-- ამ handoff-ის შექმნამდე ბოლო commit: `490f4cf — Move Excel extraction orchestration into package`
+- ბოლო დასრულებული milestone ამ სესიის დაწყებამდე: `c297933 — Extract Excel layout report aggregation`
 - `main` ჯერ არ შეცვლილა;
 - ყველა დასრულებული milestone ატვირთულია სამუშაო ბრენჩზე;
 - ახალი სამუშაო ყოველთვის მცირე commit-ებად დაყავი და წარმატებული სრული შემოწმების შემდეგ push გააკეთე.
@@ -80,7 +80,11 @@ git status --short --branch
 - `ContextPack.ExcelDiagnostics.ps1` — manual page break და shapes diagnostics უსაფრთხო fallback-ებით;
 - `ContextPack.ExcelPagination.ps1` — horizontal page count, wide-sheet safeguard, AutoFit PrintArea/PageSetup application და cleanup;
 - `ContextPack.ExcelAutoFit.ps1` — AutoFit eligibility condition order და skip reasons Excel COM mutation-ის გარეშე;
+- `ContextPack.ExcelLayoutExport.ps1` — read-only workbook export, per-sheet diagnostics, AutoFit pagination და guaranteed COM cleanup;
 - `ContextPack.ExcelWorkbookLayout.ps1` — authoritative workbook-layout PDF/PNG paths, renderer metrics და warnings orchestration;
+- `ContextPack.ExcelAutoFitLayout.ps1` — AutoFit PDF/PNG paths, renderer metrics და complete-PDF fallback warning;
+- `ContextPack.ExcelLayoutReport.ps1` — stable JSON array/schema, applied/skipped summary და warnings;
+- root `excel-package.ps1` მხოლოდ extraction/layout/report/manifest/atomic-finalize orchestration-ს შეიცავს;
 - portable ZIP build უკვე აკოპირებს `contextpack/` Python package-ს.
 
 ### Excel Python extractor
@@ -103,7 +107,10 @@ git status --short --branch
 - `tests/test-excel-diagnostics.ps1` manual break/shapes counting, fallback და release tests;
 - `tests/test-excel-pagination.ps1` 1/8/9/16/17/24/60 boundaries, 60/61/custom limit, PageSetup და cleanup tests;
 - `tests/test-excel-autofit.ps1` hidden/empty/wide/drawing/manual-break precedence და eligible-sheet tests;
+- `tests/test-excel-layout-export.ps1` Workbook/AutoFit diagnostics, PDF arguments, forwarding, release და failure cleanup tests;
 - `tests/test-excel-workbook-layout.ps1` output paths, renderer arguments, warnings და failure propagation tests;
+- `tests/test-excel-autofit-layout.ps1` output paths, renderer arguments, complete-PDF fallback და failure propagation tests;
+- `tests/test-excel-layout-report.ps1` 0/1/many JSON arrays, stable schema, UTF-8, summaries, warnings და write failure tests;
 - `tests/test-common.ps1` atomic build/manifest tests;
 - `tests/test-e2e.ps1 -RequireExcel` სრული E2E:
   - Markdown conversion;
@@ -130,29 +137,17 @@ E2E script თვითონ ქმნის უნიკალურ Windows T
 
 ## შემდეგი ზუსტი ეტაპი
 
-Excel COM lifecycle, layout-risk diagnostics, Workbook orchestration, AutoFit eligibility და horizontal pagination milestones დასრულებულია. 8-column page planning, wide-sheet limit და PrintArea/PageSetup application `ContextPack.ExcelPagination.ps1`-შია გამოყოფილი.
+Excel PowerShell COM/layout refactor დასრულებულია: lifecycle, diagnostics, pagination, Workbook/AutoFit rendering, report aggregation და root orchestration ცალ-ცალკე იკითხება და ტესტირდება. Workbook vs AutoFit ქცევა, output package schema და source-safety კონტრაქტი უცვლელია.
 
-შემდეგ მცირე milestone-ში მხოლოდ `print-layout-report.json` writing გამოყავი `excel-package.ps1`-დან. არ შეცვალო და არ შეეხო:
+შემდეგ მცირე milestone-ში მხოლოდ installer/portable packaging QA ჩაატარე ახალი root-level PowerShell მოდულებისთვის:
 
-- Workbook vs AutoFit ქცევა;
-- horizontal pagination;
-- manual page break logic;
-- chart/image/merged-cell decisions;
-- `print-layout-report.json` schema;
-- output package schema.
+1. დაადასტურე, რომ installer source და portable ZIP ყველა `ContextPack.Excel*.ps1` მოდულს შეიცავს;
+2. portable package-დან გაუშვი Excel `Both` smoke test დროებით fixture-ზე;
+3. clean per-user install-ზე გადაამოწმე GUI launch და ერთი Excel/PDF package;
+4. uninstall-ისას მომხმარებლის input/output ფაილებს არ შეეხო;
+5. release, `main` merge ან tag არ შექმნა მფლობელის ცალკე თანხმობის გარეშე.
 
-სასურველი root-level ფაილები უნდა იყოს installer/portable packaging-თან თავსებადი. ახალი nested PowerShell საქაღალდის დამატებამდე გადაამოწმე `installer/build-release.ps1` და `installer/ContextPack.iss`. Root-level `.ps1` ფაილები portable build-ში ავტომატურად ხვდება.
-
-პირველი COM milestone-ის შემდეგ აუცილებლად გაუშვი სრული `-RequireExcel` E2E. მხოლოდ static test საკმარისი არ არის.
-
-## Excel COM-ის შემდგომი ეტაპები
-
-Pagination-ის შემდეგ ცალკე მცირე milestone-ებად:
-
-1. `print-layout-report.json` writing;
-2. root `excel-package.ps1`-ის საბოლოო orchestration script-ად შემცირება.
-
-ყოველი milestone-ის შემდეგ tests → commit → push.
+ამის შემდეგ დაიწყე `pdf-package.ps1`-ის მცირე, ცალ-ცალკე შემოწმებადი პასუხისმგებლობებად დაყოფა. ყოველი milestone-ის შემდეგ გამოიყენე tests → commit → push.
 
 ## Excel-ის შემდეგ
 
@@ -208,9 +203,9 @@ inspect → plan → process → verify → summarize
 
 ## სავარაუდო პროგრესი
 
-სრული დაგეგმილი რეფაქტორის დაახლოებით 55–60% დასრულებულია. დარჩენილია:
+სრული დაგეგმილი რეფაქტორის დაახლოებით 60–65% დასრულებულია. დარჩენილია:
 
-- Excel PowerShell COM/layout pipeline;
+- installer/portable smoke QA ახალი Excel მოდულებისთვის;
 - PDF/OCR pipeline;
 - intelligent profiling/planning layer;
 - package summary/severity/selective rendering;

@@ -16,13 +16,17 @@ $excelComScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelCo
 $excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
 $excelPaginationScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelPagination.ps1') -Raw -Encoding UTF8
 $excelAutoFitScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelAutoFit.ps1') -Raw -Encoding UTF8
+$excelLayoutExportScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelLayoutExport.ps1') -Raw -Encoding UTF8
 $excelWorkbookLayoutScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1') -Raw -Encoding UTF8
+$excelAutoFitLayoutScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelAutoFitLayout.ps1') -Raw -Encoding UTF8
 $excelLayoutReportScript = Get-Content -LiteralPath (Join-Path $root 'ContextPack.ExcelLayoutReport.ps1') -Raw -Encoding UTF8
 if ($excelScript -notmatch 'ContextPack\.ExcelCom\.ps1') { $failures += 'Excel packaging does not load the COM lifecycle helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelDiagnostics\.ps1') { $failures += 'Excel packaging does not load the layout diagnostics helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelPagination\.ps1') { $failures += 'Excel packaging does not load the pagination helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelAutoFit\.ps1') { $failures += 'Excel packaging does not load the AutoFit decision helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelLayoutExport\.ps1') { $failures += 'Excel packaging does not load the layout-export helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelWorkbookLayout\.ps1') { $failures += 'Excel packaging does not load the workbook-layout orchestration helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelAutoFitLayout\.ps1') { $failures += 'Excel packaging does not load the AutoFit-layout orchestration helper.' }
 if ($excelScript -notmatch 'ContextPack\.ExcelLayoutReport\.ps1') { $failures += 'Excel packaging does not load the layout-report helper.' }
 if ($excelComScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
 if ($excelComScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
@@ -34,8 +38,12 @@ if ($excelDiagnosticsScript -notmatch 'Get-ExcelShapeCount') { $failures += 'Exc
 if ($excelDiagnosticsScript -notmatch '-4135') { $failures += 'Excel manual page-break type detection is missing.' }
 if ($excelAutoFitScript -notmatch 'Get-ContextPackExcelAutoFitDecision') { $failures += 'Excel AutoFit decision helper is missing.' }
 if ($excelPaginationScript -notmatch 'Get-ContextPackExcelHorizontalPageCount') { $failures += 'Excel horizontal pagination planning is missing.' }
+if ($excelLayoutExportScript -notmatch 'Complete-ContextPackExcelComCleanup') { $failures += 'Excel layout export does not guarantee COM cleanup.' }
+if ($excelLayoutExportScript -notmatch 'ExportAsFixedFormat\(0,\s*\$PdfPath,\s*0,\s*\$true,\s*\$false\)') { $failures += 'Excel layout PDF export arguments changed.' }
 if ($excelWorkbookLayoutScript -notmatch 'Join-Path\s+\$RenderedDirectory\s+''workbook-layout''') { $failures += 'The authoritative workbook-layout output path changed.' }
 if ($excelWorkbookLayoutScript -notmatch 'complete PDF is preserved') { $failures += 'Workbook rendering no longer documents the complete-PDF fallback.' }
+if ($excelAutoFitLayoutScript -notmatch 'Join-Path\s+\$RenderedDirectory\s+''auto-layout''') { $failures += 'The AutoFit-layout output path changed.' }
+if ($excelAutoFitLayoutScript -notmatch 'complete PDF is preserved') { $failures += 'AutoFit rendering no longer documents the complete-PDF fallback.' }
 if ($excelLayoutReportScript -notmatch 'Join-Path\s+\$PackageDirectory\s+''print-layout-report\.json''') { $failures += 'The Excel print-layout report path changed.' }
 if ($excelLayoutReportScript -notmatch 'AutoFit skipped for sheet') { $failures += 'The Excel layout report no longer summarizes skipped AutoFit sheets.' }
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
@@ -71,6 +79,8 @@ if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
 & (Join-Path $PSScriptRoot 'test-excel-diagnostics.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-pagination.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-autofit.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-layout-export.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-workbook-layout.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-autofit-layout.ps1')
 & (Join-Path $PSScriptRoot 'test-excel-layout-report.ps1')
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

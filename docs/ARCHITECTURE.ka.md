@@ -28,7 +28,10 @@
 - `ContextPack.ExcelDiagnostics.ps1` — manual page break-ებისა და drawing object-ების read-only დათვლა AutoFit safety decisions-ისთვის.
 - `ContextPack.ExcelPagination.ps1` — 8-სვეტიანი horizontal pagination, wide-sheet limit, PrintArea/PageSetup application და COM cleanup.
 - `ContextPack.ExcelAutoFit.ps1` — hidden/empty/wide/drawing/manual-break პირობების pure AutoFit eligibility გადაწყვეტილება.
+- `ContextPack.ExcelLayoutExport.ps1` — workbook-ის read-only COM export, sheet diagnostics და AutoFit pagination-ის გამოყენება source-ის შენახვის გარეშე.
 - `ContextPack.ExcelWorkbookLayout.ps1` — ავტორის workbook-layout PDF/PNG export-ის საქაღალდეები, renderer metrics და warning orchestration.
+- `ContextPack.ExcelAutoFitLayout.ps1` — დამხმარე AutoFit PDF/PNG საქაღალდეები, renderer metrics და complete-PDF fallback warning.
+- `ContextPack.ExcelLayoutReport.ps1` — სტაბილური `print-layout-report.json`, AutoFit applied/skipped შეჯამება და warnings.
 
 ## Python-ის გამოყოფილი საფუძველი
 
@@ -64,6 +67,8 @@
 - სხვა დოკუმენტი: MarkItDown-ის საშუალებით Markdown conversion.
 
 Root-level `contextpack.ps1` სტაბილური command-line entry point-ია: ის პარამეტრებს იღებს, input-ს ამოწმებს და routing მოდულს იძახებს. ფორმატების კონკრეტული გადაწყვეტილებები `contextpack-routing.ps1`-შია თავმოყრილი, რათა მათი ცალ-ცალკე წაკითხვა და ტესტირება შეიძლებოდეს.
+
+Root-level `excel-package.ps1` მოკლე orchestration script-ია: ის ქმნის atomic build-ს, იძახებს Python extraction-სა და Excel layout მოდულებს, შემდეგ წერს quality/handoff/manifest ფაილებს და მხოლოდ სრული წარმატების შემდეგ ასრულებს package-ს.
 
 ## უსაფრთხოების მნიშვნელოვანი წესები
 

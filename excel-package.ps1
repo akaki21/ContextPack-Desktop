@@ -13,7 +13,9 @@ $root = $PSScriptRoot
 . (Join-Path $root 'ContextPack.ExcelDiagnostics.ps1')
 . (Join-Path $root 'ContextPack.ExcelPagination.ps1')
 . (Join-Path $root 'ContextPack.ExcelAutoFit.ps1')
+. (Join-Path $root 'ContextPack.ExcelLayoutExport.ps1')
 . (Join-Path $root 'ContextPack.ExcelWorkbookLayout.ps1')
+. (Join-Path $root 'ContextPack.ExcelAutoFitLayout.ps1')
 . (Join-Path $root 'ContextPack.ExcelLayoutReport.ps1')
 $python = Get-ContextPackPython
 $extractor = Join-Path $root 'extract-excel-package.py'
@@ -25,79 +27,6 @@ if ($extension -notin @('.xlsx', '.xlsm', '.xltx', '.xltm')) { throw 'Supported 
 
 $baseName = [System.IO.Path]::GetFileNameWithoutExtension($inputPath)
 $build = New-ContextPackBuild -InputPath $inputPath -PreferredName ($baseName + '_excel_package') -OutputDirectory $OutputDirectory
-
-function Export-ExcelLayout {
-    param(
-        [Parameter(Mandatory = $true)][ValidateSet('Workbook', 'AutoFit')][string]$Layout,
-        [Parameter(Mandatory = $true)][string]$PdfPath,
-        [Parameter(Mandatory = $true)]$SheetMetrics
-    )
-    $excel = $null
-    $workbook = $null
-    $diagnostics = @()
-    try {
-        $excel = New-ContextPackExcelApplication
-        $workbook = Open-ContextPackExcelWorkbook -Application $excel -Path $inputPath
-
-        $worksheetCount = [int](Invoke-ExcelRetry { $workbook.Worksheets.Count })
-        for ($worksheetIndex = 1; $worksheetIndex -le $worksheetCount; $worksheetIndex++) {
-            $worksheet = $null
-            try {
-                $worksheet = Invoke-ExcelRetry { $workbook.Worksheets.Item($worksheetIndex) }
-                $title = [string]$worksheet.Name
-                $metric = $SheetMetrics[$title]
-                $visible = ([int]$worksheet.Visible -eq -1)
-                $printAreaBefore = ''
-                $titleRows = ''
-                $titleColumns = ''
-                try { $printAreaBefore = [string]$worksheet.PageSetup.PrintArea } catch { }
-                try { $titleRows = [string]$worksheet.PageSetup.PrintTitleRows } catch { }
-                try { $titleColumns = [string]$worksheet.PageSetup.PrintTitleColumns } catch { }
-                $horizontalBreaks = Get-ExcelManualPageBreakCount $worksheet 'HPageBreaks'
-                $verticalBreaks = Get-ExcelManualPageBreakCount $worksheet 'VPageBreaks'
-                $shapeCount = Get-ExcelShapeCount $worksheet
-                $status = if ($Layout -eq 'Workbook') { 'preserved' } else { 'skipped' }
-                $reasons = @()
-                $printAreaAfter = $printAreaBefore
-                $fitToPagesWide = $null
-
-                if ($Layout -eq 'AutoFit') {
-                    $autoFitDecision = Get-ContextPackExcelAutoFitDecision -Visible $visible -Metric $metric -ShapeCount $shapeCount -HorizontalPageBreaks $horizontalBreaks -VerticalPageBreaks $verticalBreaks -MaxAutoFitColumns $MaxAutoFitColumns
-                    $reasons += @($autoFitDecision.Reasons)
-                    if ($autoFitDecision.CanApply) {
-                        $pagination = Set-ContextPackExcelAutoFitPagination -Worksheet $worksheet -Metric $metric
-                        $printAreaAfter = $pagination.PrintArea
-                        $fitToPagesWide = $pagination.FitToPagesWide
-                        $reasons += @($pagination.Notes)
-                        $status = 'applied'
-                    }
-                }
-
-                $diagnostics += [pscustomobject]@{
-                    sheet = $title
-                    visible = $visible
-                    layout = $Layout
-                    status = $status
-                    reasons = @($reasons)
-                    print_area_before = $printAreaBefore
-                    print_area_after = $printAreaAfter
-                    fit_to_pages_wide = $fitToPagesWide
-                    print_title_rows = $titleRows
-                    print_title_columns = $titleColumns
-                    manual_horizontal_page_breaks = $horizontalBreaks
-                    manual_vertical_page_breaks = $verticalBreaks
-                    drawing_objects = $shapeCount
-                }
-            } finally {
-                Release-ExcelComObject $worksheet
-            }
-        }
-        Invoke-ExcelRetry { $workbook.ExportAsFixedFormat(0, $PdfPath, 0, $true, $false) } | Out-Null
-        return @($diagnostics)
-    } finally {
-        Complete-ContextPackExcelComCleanup -Workbook $workbook -Application $excel
-    }
-}
 
 try {
     $packageDir = $build.BuildPath
@@ -118,25 +47,19 @@ try {
     if ($RenderMode -in @('Workbook', 'Both')) {
         $workbookLayoutResult = Invoke-ContextPackExcelWorkbookLayout -RenderedDirectory $renderedDir -Python $python -Renderer $renderer -Dpi $Dpi -MaxRenderedPages $maxRenderedPages -ExportPdf {
             param($PdfPath)
-            Export-ExcelLayout -Layout Workbook -PdfPath $PdfPath -SheetMetrics $sheetMetricMap
+            Export-ContextPackExcelLayout -InputPath $inputPath -Layout Workbook -PdfPath $PdfPath -SheetMetrics $sheetMetricMap -MaxAutoFitColumns $MaxAutoFitColumns
         }
         $layoutDiagnostics += @($workbookLayoutResult.Diagnostics)
         $layoutWarnings += @($workbookLayoutResult.Warnings)
     }
 
     if ($RenderMode -in @('AutoFit', 'Both')) {
-        $autoLayoutDir = Join-Path $renderedDir 'auto-layout'
-        $autoPages = Join-Path $autoLayoutDir 'pages'
-        New-Item -ItemType Directory -Path $autoPages -Force | Out-Null
-        $autoPdf = Join-Path $autoLayoutDir 'workbook.pdf'
-        $autoRenderMetricsPath = Join-Path $autoLayoutDir 'page-render-metrics.json'
-        $layoutDiagnostics += Export-ExcelLayout -Layout AutoFit -PdfPath $autoPdf -SheetMetrics $sheetMetricMap
-        & $python $renderer $autoPdf $autoPages --dpi $Dpi --metrics $autoRenderMetricsPath --max-pages $maxRenderedPages
-        if ($LASTEXITCODE -ne 0) { throw 'Rendering auto-layout PDF failed' }
-        $autoRenderMetrics = Get-Content -LiteralPath $autoRenderMetricsPath -Raw -Encoding UTF8 | ConvertFrom-Json
-        if ($autoRenderMetrics.render_skipped) {
-            $layoutWarnings += "Auto-layout PNG rendering skipped: $($autoRenderMetrics.reason) The complete PDF is preserved."
+        $autoFitLayoutResult = Invoke-ContextPackExcelAutoFitLayout -RenderedDirectory $renderedDir -Python $python -Renderer $renderer -Dpi $Dpi -MaxRenderedPages $maxRenderedPages -ExportPdf {
+            param($PdfPath)
+            Export-ContextPackExcelLayout -InputPath $inputPath -Layout AutoFit -PdfPath $PdfPath -SheetMetrics $sheetMetricMap -MaxAutoFitColumns $MaxAutoFitColumns
         }
+        $layoutDiagnostics += @($autoFitLayoutResult.Diagnostics)
+        $layoutWarnings += @($autoFitLayoutResult.Warnings)
     }
 
     $layoutReportResult = Write-ContextPackExcelLayoutReport -PackageDirectory $packageDir -Diagnostics $layoutDiagnostics
