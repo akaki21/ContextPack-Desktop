@@ -6,7 +6,17 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 
 [ქართული დოკუმენტაცია](README.ka.md)
 
-## What v2.2 adds
+## What v2.3 adds
+
+- English, Georgian and Russian OCR selection in the GUI and CLI.
+- HTML packages with merged-cell coordinates, exact string values, original anchors and local images.
+- Page-image OCR recovery when a PDF still has sparse or damaged text; per-page quality diagnostics.
+- PDF image limits and an option to reference originals without copying them.
+- Reuse of unchanged PDF/HTML packages after source, pipeline and output hash checks. Edited previous packages are kept when rebuilding.
+
+These are extraction tools, not validated engineering interpretations. Verify numerical values, units, signs and applicability against the original. See [the document-library guide](docs/DOCUMENT_LIBRARY.md).
+
+## Desktop features
 
 - Bilingual Georgian/English desktop GUI with a double-click Windows launcher.
 - Output-folder selection before every job, including direct Desktop saves.
@@ -35,7 +45,7 @@ ContextPack Desktop turns PDFs, scans, spreadsheets, images, and Office document
 
 ## Install
 
-For most Windows users, download `ContextPack-Setup-2.2.0.exe` from the latest GitHub Release and double-click it. The installer prepares dependencies, creates Start Menu shortcuts, optionally creates a Desktop shortcut, and supports repair/uninstall. See the [English installation guide](docs/INSTALLATION.md) or [Georgian guide](docs/INSTALLATION.ka.md).
+Use the installer attached to a published GitHub Release, or the source setup below. The v2.3 source changes do not imply that a v2.3 installer has already been published. See the [English installation guide](docs/INSTALLATION.md) or [Georgian guide](docs/INSTALLATION.ka.md).
 
 For developers or portable use:
 
@@ -47,7 +57,7 @@ Set-ExecutionPolicy -Scope Process Bypass
 .\check-environment.ps1
 ```
 
-Activation of `.venv` is not required. Setup creates the local environment, installs only the document/OCR dependencies used by ContextPack, detects or installs Tesseract, and verifies the official English, Georgian, and orientation models.
+Activation of `.venv` is not required. Setup creates the local environment, installs the document/OCR dependencies, detects or installs Tesseract, and verifies the official English, Georgian, Russian, and orientation models. Existing installations should rerun `setup.ps1` for the Russian model and HTML parser.
 
 ## Desktop GUI
 
@@ -80,7 +90,8 @@ Auto mode routes files as follows:
 
 - PDF: detects whether OCR is needed and creates a complete package.
 - Excel: creates a complete formula/data/visual package.
-- Image: runs Georgian + English OCR.
+- HTML: preserves tables and anchors in a complete package.
+- Image: runs OCR in the selected languages (default Georgian + English).
 - Other supported document/data format: creates Markdown.
 
 Optional modes:
@@ -90,12 +101,14 @@ Optional modes:
 .\contextpack.ps1 ".\input\document.pdf" -Mode Full -Dpi 240
 .\contextpack.ps1 ".\input\scan.pdf" -Mode Ocr
 .\contextpack.ps1 ".\input\workbook.xlsx" -ExcelRenderMode Both
+.\contextpack.ps1 ".\input\scan.pdf" -OcrLanguages rus+eng -PdfRenderMode Sparse -MaxRenderPages 30 -SourcePolicy Reference
+.\contextpack.ps1 ".\input\norm.html" -SourcePolicy Reference
 ```
 
-- `Auto` (default): detects whether a PDF needs OCR; creates a complete Excel package; OCRs images; converts other supported files to Markdown.
+- `Auto` (default): detects sparse/damaged PDF pages, creates Excel/HTML packages, OCRs images and converts other supported files to Markdown.
 - `Fast`: converts PDF or Excel directly to Markdown without building the complete visual package.
-- `Full`: builds the complete PDF or Excel package without forcing OCR.
-- `Ocr`: forces Georgian + English OCR for a PDF; images always use OCR.
+- `Full`: builds PDF, HTML or Excel packages without PDF OCR.
+- `Ocr`: requests PDF OCR using `-OcrLanguages`; images always use OCR. Supported languages: `eng`, `kat`, `rus`, joined with `+`.
 - `ExcelRenderMode Both` (default): creates both Excel visual layouts. Choose `Workbook` or `AutoFit` to create only one.
 
 ## PDF package
@@ -109,12 +122,14 @@ document_pdf_package/
 ├── document.pdf
 ├── document.md
 ├── page-text.md
-├── document_ocr.pdf          # only when OCR is used
+├── document_ocr.pdf          # when searchable PDF creation succeeds
 ├── pdf-metrics.json
 └── pages/page-001.png ...
 ```
 
 `page-text.md` contains markers such as `<!-- source-page: 12 -->`. This lets an AI map extracted text back to the exact PDF/PNG page. `quality-report.md` highlights sparse-text pages that deserve visual review.
+
+The main PDF Markdown now contains the same page-aware text, including any page-image OCR recovery. Recovery text/word boxes are under `ocr-pages/` and are not inserted into the searchable PDF. By default up to 100 PNG pages are saved; all pages still receive text extraction. `-PdfRenderMode All|Sparse|None` and `-MaxRenderPages` control images, and `-SourcePolicy Reference` replaces the original copy with `source-reference.json`. These settings and `-Force` (bypass reuse) are available in **OCR and PDF/HTML storage settings** in the GUI.
 
 ## Excel package
 

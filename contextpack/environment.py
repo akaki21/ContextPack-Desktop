@@ -55,16 +55,17 @@ def excel_is_available() -> bool:
         return False
 
 
+def ocr_is_available(languages: str = 'kat+eng') -> bool:
+    tessdata = Path(os.environ.get('CONTEXTPACK_TESSDATA') or PROJECT_ROOT / 'tessdata')
+    models_ready = all((tessdata / f'{language}.traineddata').is_file() for language in set(languages.split('+')) | {'osd'})
+    return find_tesseract() is not None and models_ready and importlib.util.find_spec('ocrmypdf') is not None
+
+
 def environment_summary() -> dict[str, bool]:
     """Report whether the engine, OCR, and Excel rendering are ready."""
 
-    models_ready = all(
-        (PROJECT_ROOT / "tessdata" / f"{language}.traineddata").is_file()
-        for language in ("kat", "eng", "osd")
-    )
     return {
         "engine": RUNNER.is_file() and importlib.util.find_spec("markitdown") is not None,
-        "ocr": find_tesseract() is not None and models_ready and importlib.util.find_spec("ocrmypdf") is not None,
+        "ocr": ocr_is_available(),
         "excel": excel_is_available(),
     }
-

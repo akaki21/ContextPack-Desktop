@@ -13,7 +13,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from contextpack.file_types import EXCEL_EXTENSIONS, IMAGE_EXTENSIONS, classify_input
-from contextpack.environment import environment_summary, excel_is_available, find_tesseract, preferred_output_directory
+from contextpack.environment import environment_summary, excel_is_available, find_tesseract, preferred_output_directory, ocr_is_available
 from contextpack.gui.theme import COLORS, configure_gui_styles
 from contextpack.gui.layout import build_main_layout
 from contextpack.job_options import JobOptions
@@ -61,6 +61,7 @@ class ContextPackGui:
         self.cancel_file: Path | None = None
         self.result_path: Path | None = None
         self.current_action = ""
+        self.job_has_warnings = False
         self.close_when_done = False
         self.environment = environment_summary()
         self.last_output_directory = preferred_output_directory()
@@ -74,6 +75,11 @@ class ContextPackGui:
         self.excel_mode_var = tk.StringVar(value=next(iter(EXCEL_MODE_LABELS[self.language])))
         self.dpi_var = tk.IntVar(value=180)
         self.max_columns_var = tk.IntVar(value=60)
+        self.ocr_languages_var = tk.StringVar(value='kat+eng')
+        self.pdf_render_var = tk.StringVar(value='All')
+        self.max_render_pages_var = tk.IntVar(value=100)
+        self.source_policy_var = tk.StringVar(value='Copy')
+        self.force_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar()
         self.file_kind_var = tk.StringVar()
         self.environment_var = tk.StringVar()
@@ -163,7 +169,7 @@ class ContextPackGui:
         selected = filedialog.askopenfilename(
             title=self._t("dialog.choose_file"),
             filetypes=[
-                (self._t("dialog.all_supported"), "*.pdf *.xlsx *.xlsm *.xltx *.xltm *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.docx *.pptx *.csv *.txt"),
+                (self._t("dialog.all_supported"), "*.pdf *.html *.htm *.xlsx *.xlsm *.xltx *.xltm *.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp *.docx *.pptx *.csv *.txt"),
                 ("PDF", "*.pdf"),
                 ("Excel", "*.xlsx *.xlsm *.xltx *.xltm"),
                 (self._t("dialog.images"), "*.png *.jpg *.jpeg *.tif *.tiff *.bmp *.webp"),
@@ -195,6 +201,7 @@ class ContextPackGui:
         try:
             dpi = int(self.dpi_var.get())
             max_columns = int(self.max_columns_var.get())
+            max_render_pages = int(self.max_render_pages_var.get())
         except (tk.TclError, ValueError):
             messagebox.showerror(self._t("dialog.invalid.title"), self._t("dialog.invalid.body"))
             return None
@@ -204,6 +211,11 @@ class ContextPackGui:
             dpi=dpi,
             excel_render_mode=EXCEL_MODE_LABELS[self.language][self.excel_mode_var.get()],
             max_autofit_columns=max_columns,
+            ocr_languages=self.ocr_languages_var.get(),
+            pdf_render_mode=self.pdf_render_var.get(),
+            max_render_pages=max_render_pages,
+            source_policy=self.source_policy_var.get(),
+            force=self.force_var.get(),
         )
         error = validate_options(options, self.language)
         if error:
@@ -213,7 +225,7 @@ class ContextPackGui:
         if kind == "excel" and options.mode != "Fast" and not self.environment["excel"]:
             messagebox.showerror(self._t("dialog.no_excel.title"), self._t("dialog.no_excel.body"))
             return None
-        if (options.mode == "Ocr" or kind == "image") and not self.environment["ocr"]:
+        if (options.mode == "Ocr" or kind == "image") and not ocr_is_available(options.ocr_languages):
             messagebox.showerror(self._t("dialog.no_ocr.title"), self._t("dialog.no_ocr.body"))
             return None
         return options
@@ -263,6 +275,7 @@ class ContextPackGui:
         self._start_job(action, None)
 
     def _start_job(self, action: str, options: JobOptions | None) -> None:
+        self.job_has_warnings = False
         self.current_action = action
         self.cancel_file = new_cancel_file()
         command = build_runner_command(action, options=options, cancel_file=self.cancel_file)
@@ -308,6 +321,8 @@ class ContextPackGui:
         if event_type == "log":
             self._append_log(message)
             return
+        if event_type == 'warning':
+            self.job_has_warnings = True
         if message:
             self._set_runner_status(message)
             self._append_log(translate_runner_status(message, self.language))
@@ -333,12 +348,15 @@ class ContextPackGui:
         if return_code == 0:
             self.progress.configure(value=100)
             if action == "Convert":
-                self._set_status("status.success")
+                self._set_status('status.review' if self.job_has_warnings else 'status.success')
                 if self.result_path is None:
                     self.result_path = OUTPUT_ROOT
                 self.open_button.configure(state="normal")
                 self.copy_button.configure(state="normal")
-                messagebox.showinfo(self._t("dialog.ready.title"), self._t("dialog.ready.body", path=self.result_path))
+                if self.job_has_warnings:
+                    messagebox.showwarning(self._t('status.review'), self._t('dialog.review.body', path=self.result_path))
+                else:
+                    messagebox.showinfo(self._t("dialog.ready.title"), self._t("dialog.ready.body", path=self.result_path))
             else:
                 self.environment = environment_summary()
                 self._refresh_environment_label()
@@ -361,6 +379,7 @@ class ContextPackGui:
         self.file_entry.configure(state=state)
         self.mode_combo.configure(state="disabled" if busy else "readonly")
         self.dpi_spin.configure(state=state)
+        self.advanced_button.configure(state=state)
         if busy:
             self.excel_combo.configure(state="disabled")
             self.columns_spin.configure(state="disabled")

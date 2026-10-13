@@ -51,11 +51,16 @@ def build_runner_command(
                 options.excel_render_mode,
                 "-MaxAutoFitColumns",
                 str(options.max_autofit_columns),
+                '-OcrLanguages', options.ocr_languages,
+                '-PdfRenderMode', options.pdf_render_mode,
+                '-MaxRenderPages', str(options.max_render_pages),
+                '-SourcePolicy', options.source_policy,
             ]
         )
         if options.output_directory is not None:
             command.extend(["-OutputDirectory", str(options.output_directory)])
+        if options.force:
+            command.append('-Force')
     if cancel_file is not None:
         command.extend(["-CancelFile", str(cancel_file)])
     return command
-

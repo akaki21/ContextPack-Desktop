@@ -1,4 +1,4 @@
-$script:ContextPackVersion = '2.2.0'
+$script:ContextPackVersion = '2.3.0'
 
 # Stable compatibility loader used by the existing PDF, Excel, OCR, and
 # document-processing entry points.

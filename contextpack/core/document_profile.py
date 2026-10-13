@@ -47,6 +47,8 @@ class DocumentProfile:
 
 
 def _format_family(extension: str) -> str:
+    if extension in {'.html', '.htm'}:
+        return 'html'
     if extension == ".pdf":
         return "pdf"
     if extension in EXCEL_FAMILY_EXTENSIONS:

@@ -10,9 +10,9 @@ from __future__ import annotations
 from typing import Any
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 
-from ..localization import EXCEL_MODE_LABELS, LANGUAGE_LABELS, MODE_LABELS
+from ..localization import EXCEL_MODE_LABELS, LANGUAGE_LABELS, MODE_LABELS, OCR_LANGUAGE_LABELS, PDF_RENDER_LABELS, SOURCE_POLICY_LABELS, label_for_value
 from .theme import COLORS
 
 
@@ -78,6 +78,52 @@ def build_options_section(app: Any, shell: ttk.Frame) -> None:
     app._localized_label(options_card, "options.columns", style="Card.TLabel").grid(row=4, column=1, sticky="w", pady=(12, 0))
     app.columns_spin = ttk.Spinbox(options_card, from_=10, to=200, increment=5, textvariable=app.max_columns_var, width=8, state="disabled")
     app.columns_spin.grid(row=5, column=1, sticky="ew", pady=(4, 0))
+    app.advanced_button = app._localized_button(options_card, 'options.advanced', style='Secondary.TButton', command=lambda: show_processing_options(app))
+    app.advanced_button.grid(row=6, column=0, columnspan=2, sticky='w', pady=(12, 0))
+
+
+def show_processing_options(app: Any) -> tk.Toplevel:
+    dialog = tk.Toplevel(app.root)
+    dialog.title(app._t('options.advanced'))
+    dialog.transient(app.root)
+    dialog.resizable(False, False)
+    frame = ttk.Frame(dialog, padding=20)
+    frame.grid(sticky='nsew')
+    language = tk.StringVar(dialog, value=next(label for label, code in OCR_LANGUAGE_LABELS.items() if code == app.ocr_languages_var.get()))
+    render = tk.StringVar(dialog, value=label_for_value(PDF_RENDER_LABELS, app.language, app.pdf_render_var.get()))
+    policy = tk.StringVar(dialog, value=label_for_value(SOURCE_POLICY_LABELS, app.language, app.source_policy_var.get()))
+    limit = tk.StringVar(dialog, value=str(app.max_render_pages_var.get()))
+    force = tk.BooleanVar(dialog, value=app.force_var.get())
+    for row, (key, variable, labels) in enumerate([
+        ('options.ocr_languages', language, OCR_LANGUAGE_LABELS),
+        ('options.pdf_render', render, PDF_RENDER_LABELS[app.language]),
+        ('options.source_policy', policy, SOURCE_POLICY_LABELS[app.language]),
+    ]):
+        ttk.Label(frame, text=app._t(key)).grid(row=row * 2, column=0, sticky='w', pady=(8, 3))
+        ttk.Combobox(frame, textvariable=variable, values=list(labels), state='readonly', width=58).grid(row=row * 2 + 1, column=0, sticky='ew')
+    ttk.Label(frame, text=app._t('options.render_limit')).grid(row=6, column=0, sticky='w', pady=(12, 3))
+    ttk.Spinbox(frame, from_=0, to=100000, textvariable=limit).grid(row=7, column=0, sticky='ew')
+    ttk.Checkbutton(frame, text=app._t('options.force'), variable=force).grid(row=8, column=0, sticky='w', pady=12)
+    ttk.Label(frame, text=app._t('options.reference_hint'), wraplength=540).grid(row=9, column=0, sticky='w')
+
+    def save() -> None:
+        try:
+            value = int(limit.get())
+            if not 0 <= value <= 100000:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror(app._t('dialog.invalid.title'), app._t('validation.render_limit'), parent=dialog)
+            return
+        app.ocr_languages_var.set(OCR_LANGUAGE_LABELS[language.get()])
+        app.pdf_render_var.set(PDF_RENDER_LABELS[app.language][render.get()])
+        app.source_policy_var.set(SOURCE_POLICY_LABELS[app.language][policy.get()])
+        app.max_render_pages_var.set(value)
+        app.force_var.set(force.get())
+        dialog.destroy()
+
+    ttk.Button(frame, text=app._t('options.apply'), command=save).grid(row=10, column=0, sticky='e', pady=(16, 0))
+    dialog.grab_set()
+    return dialog
 
 
 def build_action_section(app: Any, shell: ttk.Frame) -> None:
@@ -139,4 +185,3 @@ def build_main_layout(app: Any) -> None:
     build_options_section(app, shell)
     build_action_section(app, shell)
     build_details_section(app, shell)
-

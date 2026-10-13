@@ -14,6 +14,7 @@ function Assert-CommonTest {
 Assert-CommonTest ($script:ContextPackEnvironmentRoot -eq $root) 'The moved environment module resolved the wrong project root.'
 Assert-CommonTest ($script:ContextPackBuildRoot -eq $root) 'The moved build module resolved the wrong project root.'
 $expectedPython = Join-Path $root '.venv\Scripts\python.exe'
+if ($env:CONTEXTPACK_PYTHON) { $expectedPython = (Resolve-Path -LiteralPath $env:CONTEXTPACK_PYTHON).Path }
 Assert-CommonTest ((Get-ContextPackPython) -eq $expectedPython) 'The moved environment module resolved the wrong Python runtime.'
 
 try {

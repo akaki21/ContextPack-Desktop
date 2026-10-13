@@ -15,6 +15,8 @@ def classify_input(path: Path) -> str:
     """Return the internal processor name selected for *path*."""
 
     extension = path.suffix.lower()
+    if extension in {'.html', '.htm'}:
+        return 'html'
     if extension == ".pdf":
         return "pdf"
     if extension in EXCEL_EXTENSIONS:
@@ -22,4 +24,3 @@ def classify_input(path: Path) -> str:
     if extension in IMAGE_EXTENSIONS:
         return "image"
     return "document"
-

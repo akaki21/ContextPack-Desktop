@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$WorkDirectory,
     [switch]$RequireExcel,
     [switch]$SkipOcr,
@@ -8,7 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$python = Join-Path $root '.venv\Scripts\python.exe'
+. (Join-Path $root 'common.ps1')
+$python = Get-ContextPackPython
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Run setup.ps1 before the end-to-end tests.' }
 
 $ownsWorkDirectory = [string]::IsNullOrWhiteSpace($WorkDirectory)
@@ -27,7 +28,9 @@ function Assert-True {
 
 function Read-JsonFile {
     param([string]$Path)
-    return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $decoded = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    # Windows PowerShell 5 can return a JSON array as one pipeline object.
+    foreach ($item in $decoded) { $item }
 }
 
 try {
@@ -83,6 +86,16 @@ try {
         & (Join-Path $root 'contextpack.ps1') (Join-Path $fixtures 'sample-scan.png') -Mode Ocr -OutputDirectory $output
         $imageText = Get-Content -LiteralPath (Join-Path $output 'sample-scan.txt') -Raw -Encoding UTF8
         Assert-True ($imageText -match 'CONTEXT\s+PACK\s+OCR') 'Image OCR did not recover the expected text.'
+
+        # Exercise selected-language OCR through the same Windows runner as the GUI.
+        # Tesseract writes progress to stderr; this must not turn a successful job into an error.
+        $runnerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $runnerEvents = & $runnerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'contextpack-gui-runner.ps1') -InputFile (Join-Path $fixtures 'russian-scan.png') -Mode Ocr -OcrLanguages rus -OutputDirectory $output
+        Assert-True ($LASTEXITCODE -eq 0) 'Russian image OCR failed in the GUI runner.'
+        Assert-True (($runnerEvents -join "`n") -match '"type":"result"') 'GUI runner did not emit the Russian OCR result.'
+        $russianText = Get-Content -LiteralPath (Join-Path $output 'russian-scan.txt') -Raw -Encoding UTF8
+        Assert-True ($russianText -match 'АВТОМОБИЛЬНЫЕ\s+ДОРОГИ') 'Russian title was not recovered.'
+        Assert-True ($russianText -match '14,5') 'Russian decimal comma value was not preserved in the OCR fixture.'
 
         if (-not $SkipPdfOcr) {
             # Scanned PDF OCR through OCRmyPDF and the complete PDF packaging path.

@@ -6,6 +6,19 @@ from typing import Any
 
 
 LANGUAGE_LABELS = {"ქართული": "ka", "English": "en"}
+OCR_LANGUAGE_LABELS = {
+    'ქართული + English': 'kat+eng', 'Русский + English': 'rus+eng',
+    'English': 'eng', 'Русский': 'rus', 'ქართული': 'kat',
+    'ქართული + Русский + English': 'kat+rus+eng',
+}
+PDF_RENDER_LABELS = {
+    'ka': {'ყველა, მითითებულ ზღვრამდე': 'All', 'მხოლოდ სუსტი ტექსტის გვერდები': 'Sparse', 'სურათების გარეშე': 'None'},
+    'en': {'All, up to the selected limit': 'All', 'Only pages with sparse text': 'Sparse', 'No saved images': 'None'},
+}
+SOURCE_POLICY_LABELS = {
+    'ka': {'დედნის ასლი პაკეტში': 'Copy', 'დედნის მისამართი, ასლის გარეშე': 'Reference'},
+    'en': {'Copy the original into the package': 'Copy', 'Reference the original without copying': 'Reference'},
+}
 MODE_LABELS = {
     "ka": {
         "ავტომატური — რეკომენდებული": "Auto",
@@ -44,6 +57,14 @@ TEXT = {
         "options.mode": "ძირითადი რეჟიმი",
         "options.excel": "Excel-ის ხედები",
         "options.columns": "AutoFit სვეტების ზღვარი",
+        'options.advanced': 'OCR და PDF/HTML შენახვის პარამეტრები…',
+        'options.ocr_languages': 'ტექსტის ამოცნობის ენები',
+        'options.pdf_render': 'PDF გვერდების სურათები',
+        'options.render_limit': 'სურათების მაქსიმუმი (0 — შეუზღუდავი)',
+        'options.source_policy': 'PDF/HTML დედნის შენახვა',
+        'options.force': 'PDF/HTML თავიდან დამუშავდეს; არსებული შედეგი არ გამოიყენოს',
+        'options.reference_hint': 'მისამართით შენახვისას დედანი თავის ადგილზე უნდა დარჩეს. ტექსტი ყველა PDF გვერდიდან ამოიღება სურათების ლიმიტის მიუხედავად.',
+        'options.apply': 'შენახვა',
         "action.hint": "3. გაუშვი და დაელოდე შედეგს",
         "action.start": "დამუშავების დაწყება",
         "action.cancel": "გაუქმება",
@@ -58,6 +79,8 @@ TEXT = {
         "status.output_cancelled": "შენახვის ადგილის არჩევა გაუქმდა",
         "status.starting": "დავალება იწყება…",
         "status.success": "დამუშავება წარმატებით დასრულდა",
+        'status.review': 'დასრულდა — ხარისხის გაფრთხილებებია',
+        'dialog.review.body': 'შედეგი შეიქმნა, მაგრამ ხარისხის შემოწმება საჭიროა. ჯერ წაიკითხე quality-report.md.\n\n{path}',
         "status.environment_success": "გარემოს მოქმედება წარმატებით დასრულდა",
         "status.cancelled": "დავალება გაუქმდა",
         "status.failed": "დამუშავება შეცდომით დასრულდა",
@@ -70,6 +93,7 @@ TEXT = {
         "kind.excel": "Excel workbook",
         "kind.image": "სურათი — OCR",
         "kind.document": "დოკუმენტი / მონაცემთა ფაილი",
+        'kind.html': 'HTML დოკუმენტი და ცხრილები',
         "dialog.choose_file": "აირჩიე დასამუშავებელი ფაილი",
         "dialog.all_supported": "ყველა მხარდაჭერილი ფაილი",
         "dialog.images": "სურათები",
@@ -100,6 +124,10 @@ TEXT = {
         "validation.dpi": "DPI უნდა იყოს 96-დან 300-მდე.",
         "validation.excel_mode": "Excel-ის ხედის რეჟიმი უცნობია.",
         "validation.columns": "AutoFit-ის სვეტების ზღვარი უნდა იყოს 10-დან 200-მდე.",
+        'validation.ocr_languages': 'აირჩიე ქართული, რუსული ან ინგლისური OCR ენა.',
+        'validation.pdf_render_mode': 'PDF სურათების რეჟიმი უცნობია.',
+        'validation.render_limit': 'სურათების ზღვარი უნდა იყოს მთელი რიცხვი 0-დან 100000-მდე.',
+        'validation.source_policy': 'დედნის შენახვის რეჟიმი უცნობია.',
         "validation.ocr_scope": "OCR რეჟიმი გამოიყენება მხოლოდ PDF-სა და სურათებზე.",
         "validation.output_missing": "შენახვისთვის არჩეული საქაღალდე აღარ არსებობს.",
         "log.selected_file": "არჩეული ფაილი: {path}",
@@ -122,6 +150,14 @@ TEXT = {
         "options.mode": "Main mode",
         "options.excel": "Excel views",
         "options.columns": "AutoFit column limit",
+        'options.advanced': 'OCR and PDF/HTML storage settings…',
+        'options.ocr_languages': 'Text recognition languages',
+        'options.pdf_render': 'PDF page images',
+        'options.render_limit': 'Maximum saved images (0 = unlimited)',
+        'options.source_policy': 'PDF/HTML original storage',
+        'options.force': 'Reprocess PDF/HTML instead of reusing a verified package',
+        'options.reference_hint': 'Referenced originals must remain at their original location. Text is extracted from every PDF page even when image output is limited.',
+        'options.apply': 'Save settings',
         "action.hint": "3. Start and wait for the result",
         "action.start": "Start processing",
         "action.cancel": "Cancel",
@@ -136,6 +172,8 @@ TEXT = {
         "status.output_cancelled": "Output folder selection was cancelled",
         "status.starting": "Starting the job…",
         "status.success": "Processing completed successfully",
+        'status.review': 'Completed with quality warnings',
+        'dialog.review.body': 'The result was created with review warnings. Read quality-report.md before using it.\n\n{path}',
         "status.environment_success": "Environment action completed successfully",
         "status.cancelled": "Job cancelled",
         "status.failed": "Processing failed",
@@ -148,6 +186,7 @@ TEXT = {
         "kind.excel": "Excel workbook",
         "kind.image": "Image — OCR",
         "kind.document": "Document / data file",
+        'kind.html': 'HTML document and tables',
         "dialog.choose_file": "Choose a file to process",
         "dialog.all_supported": "All supported files",
         "dialog.images": "Images",
@@ -178,6 +217,10 @@ TEXT = {
         "validation.dpi": "DPI must be between 96 and 300.",
         "validation.excel_mode": "The Excel view mode is unknown.",
         "validation.columns": "The AutoFit column limit must be between 10 and 200.",
+        'validation.ocr_languages': 'Choose Georgian, Russian or English OCR languages.',
+        'validation.pdf_render_mode': 'Unknown PDF image mode.',
+        'validation.render_limit': 'The image limit must be a whole number between 0 and 100000.',
+        'validation.source_policy': 'Unknown original storage policy.',
         "validation.ocr_scope": "OCR mode can only be used with PDFs and images.",
         "validation.output_missing": "The selected output folder no longer exists.",
         "log.selected_file": "Selected file: {path}",
@@ -193,6 +236,7 @@ TEXT = {
 }
 
 STATUS_TRANSLATIONS = {
+    'The job completed with review warnings.': {'ka': 'დასრულდა — ხარისხის გაფრთხილებებია.', 'en': 'Completed with review warnings.'},
     "Checking the environment...": {"ka": "გარემო მოწმდება…", "en": "Checking the environment…"},
     "Environment check passed.": {"ka": "გარემო გამართულია.", "en": "Environment check passed."},
     "Installing or repairing dependencies...": {"ka": "კომპონენტები ყენდება ან ახლდება…", "en": "Installing or repairing dependencies…"},
@@ -228,4 +272,3 @@ def translate_runner_status(message: str, language: str) -> str:
     """Translate a stable status message emitted by the PowerShell runner."""
 
     return STATUS_TRANSLATIONS.get(message, {}).get(language, message)
-

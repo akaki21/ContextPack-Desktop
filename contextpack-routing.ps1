@@ -15,6 +15,7 @@ function Get-ContextPackInputType {
 
     $extension = [System.IO.Path]::GetExtension($InputPath).ToLowerInvariant()
     if ($extension -eq '.pdf') { return 'Pdf' }
+    if ($extension -in @('.html', '.htm')) { return 'Html' }
     if ($extension -in @('.xlsx', '.xlsm', '.xltx', '.xltm')) { return 'Excel' }
     if ($extension -in @('.png', '.jpg', '.jpeg', '.tif', '.tiff', '.bmp', '.webp')) { return 'Image' }
     return 'Document'
@@ -26,7 +27,13 @@ function Invoke-ContextPackPdf {
         [Parameter(Mandatory = $true)][string]$InputPath,
         [Parameter(Mandatory = $true)][string]$Mode,
         [Parameter(Mandatory = $true)][int]$Dpi,
-        [string]$OutputDirectory
+        [string]$OutputDirectory,
+        [string]$OcrLanguages = 'kat+eng',
+        [string]$PdfRenderMode = 'All',
+        [int]$MaxRenderPages = 100,
+        [string]$SourcePolicy = 'Copy',
+        [switch]$Force,
+        [string]$CancelFile
     )
 
     if ($Mode -eq 'Fast') {
@@ -45,10 +52,11 @@ function Invoke-ContextPackPdf {
     }
 
     $packageScript = Join-Path $Root 'pdf-package.ps1'
+    $packageOptions = @{ InputFile = $InputPath; Dpi = $Dpi; OutputDirectory = $OutputDirectory; OcrLanguages = $OcrLanguages; PdfRenderMode = $PdfRenderMode; MaxRenderPages = $MaxRenderPages; SourcePolicy = $SourcePolicy; Force = $Force; CancelFile = $CancelFile }
     if ($useOcr) {
-        & $packageScript -InputFile $InputPath -Dpi $Dpi -Ocr -OutputDirectory $OutputDirectory
+        & $packageScript @packageOptions -Ocr
     } else {
-        & $packageScript -InputFile $InputPath -Dpi $Dpi -OutputDirectory $OutputDirectory
+        & $packageScript @packageOptions
     }
 }
 
@@ -74,23 +82,37 @@ function Invoke-ContextPackProcessor {
     param(
         [Parameter(Mandatory = $true)][string]$Root,
         [Parameter(Mandatory = $true)][string]$InputPath,
-        [Parameter(Mandatory = $true)][ValidateSet('Pdf', 'Excel', 'Image', 'Document')][string]$InputType,
+        [Parameter(Mandatory = $true)][ValidateSet('Pdf', 'Html', 'Excel', 'Image', 'Document')][string]$InputType,
         [Parameter(Mandatory = $true)][string]$Mode,
         [Parameter(Mandatory = $true)][int]$Dpi,
         [Parameter(Mandatory = $true)][string]$ExcelRenderMode,
         [Parameter(Mandatory = $true)][int]$MaxAutoFitColumns,
-        [string]$OutputDirectory
+        [string]$OutputDirectory,
+        [string]$OcrLanguages = 'kat+eng',
+        [string]$PdfRenderMode = 'All',
+        [int]$MaxRenderPages = 100,
+        [string]$SourcePolicy = 'Copy',
+        [switch]$Force,
+        [string]$CancelFile
     )
 
     switch ($InputType) {
         'Pdf' {
-            Invoke-ContextPackPdf -Root $Root -InputPath $InputPath -Mode $Mode -Dpi $Dpi -OutputDirectory $OutputDirectory
+            Invoke-ContextPackPdf -Root $Root -InputPath $InputPath -Mode $Mode -Dpi $Dpi -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages -PdfRenderMode $PdfRenderMode -MaxRenderPages $MaxRenderPages -SourcePolicy $SourcePolicy -Force:$Force -CancelFile $CancelFile
+        }
+        'Html' {
+            if ($Mode -eq 'Ocr') { throw 'OCR mode supports PDF and image inputs only.' }
+            if ($Mode -eq 'Fast') {
+                & (Join-Path $Root 'convert-to-markdown.ps1') -InputFile $InputPath -OutputDirectory $OutputDirectory
+            } else {
+                & (Join-Path $Root 'html-package.ps1') -InputFile $InputPath -OutputDirectory $OutputDirectory -SourcePolicy $SourcePolicy -Force:$Force
+            }
         }
         'Excel' {
             Invoke-ContextPackExcel -Root $Root -InputPath $InputPath -Mode $Mode -Dpi $Dpi -ExcelRenderMode $ExcelRenderMode -MaxAutoFitColumns $MaxAutoFitColumns -OutputDirectory $OutputDirectory
         }
         'Image' {
-            & (Join-Path $Root 'ocr-image.ps1') -InputFile $InputPath -OutputDirectory $OutputDirectory
+            & (Join-Path $Root 'ocr-image.ps1') -InputFile $InputPath -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages
         }
         'Document' {
             if ($Mode -eq 'Ocr') { throw 'OCR mode supports PDF and image inputs only.' }

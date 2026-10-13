@@ -10,6 +10,7 @@ function Write-ContextPackManifest {
         [Parameter(Mandatory = $false)]$Warnings = @()
     )
     $source = Get-Item -LiteralPath $InputPath
+    if ((Get-FileHash -LiteralPath $InputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Build.SourceHash) { throw 'The source changed during processing. The package will not be published.' }
     $manifest = [ordered]@{
         schema_version = 1
         contextpack_version = $script:ContextPackVersion
@@ -21,5 +22,10 @@ function Write-ContextPackManifest {
         warnings = @($Warnings)
     }
     $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $Build.BuildPath 'manifest.json') -Encoding UTF8
+    if ($Build.CacheSignature) {
+        $python = Get-ContextPackPython
+        & $python (Join-Path $script:ContextPackBuildRoot 'package-cache.py') seal $Build.BuildPath --signature $Build.CacheSignature
+        if ($LASTEXITCODE -ne 0) { throw 'Could not seal the package reuse manifest.' }
+    }
 }
 

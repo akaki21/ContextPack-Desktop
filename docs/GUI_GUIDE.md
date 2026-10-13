@@ -35,3 +35,7 @@ The quick indicators in the window header show engine, OCR, and Excel availabili
 ## AI handoff
 
 The **Copy AI task** action places the result path and recommended reading order on the clipboard. Add your concrete goal before sending it to Codex. When Codex runs on the same computer, attaching every generated PDF/PNG page is unnecessary.
+
+## OCR and storage settings
+
+Open **OCR and PDF/HTML storage settings…** below the main options to choose Russian/English/Georgian OCR, PDF image mode/limit, original copying/referencing, and forced reprocessing. The interface language is independent of OCR. [Details and review workflow](DOCUMENT_LIBRARY.md).

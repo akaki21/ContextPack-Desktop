@@ -59,6 +59,15 @@ def create_workbook(path: Path) -> None:
     workbook.save(path)
 
 
+def create_russian_scan(path: Path) -> None:
+    with Image.new('RGB', (1800, 600), 'white') as image:
+        draw = ImageDraw.Draw(image)
+        draw.text((80, 80), 'АВТОМОБИЛЬНЫЕ ДОРОГИ', fill='black', font=load_font(64))
+        draw.text((80, 230), 'Толщина слоя 15 см', fill='black', font=load_font(48))
+        draw.text((80, 340), 'Затраты труда 14,5 чел.-ч', fill='black', font=load_font(48))
+        image.save(path, dpi=(300, 300))
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output_dir")
@@ -69,6 +78,7 @@ def main() -> None:
     image = create_ocr_image(output / "sample-scan.png")
     image.save(output / "sample-scan.pdf", "PDF", resolution=300.0)
     create_workbook(output / "sample.xlsx")
+    create_russian_scan(output / 'russian-scan.png')
     (output / "sample.md").write_text(
         "# ContextPack Markdown fixture\n\nA small bilingual check: English / ქართული.\n",
         encoding="utf-8",
