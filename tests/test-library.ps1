@@ -46,6 +46,9 @@ try {
     $code = $LASTEXITCODE
     Assert-LibraryTest ($code -ne 0) 'GUI runner reported success after PDF failure.'
     Assert-LibraryTest (-not (($events -join "`n") -match '"type":"result"')) 'GUI runner emitted a success result after failure.'
+    # The child failed as expected. GitHub's PowerShell wrapper propagates
+    # LASTEXITCODE after this script, so clear only this asserted failure.
+    $global:LASTEXITCODE = 0
     Write-Host 'HTML routing, cache reuse, edit preservation, input protection and GUI error tests passed.'
 } finally {
     if (Test-Path -LiteralPath $work) {
