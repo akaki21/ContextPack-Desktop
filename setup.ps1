@@ -96,6 +96,7 @@ if ($tesseract) {
     if (Test-Path -LiteralPath $installedTessdata) { Copy-Item -Path (Join-Path $installedTessdata '*') -Destination (Join-Path $root 'tessdata') -Recurse -Force }
     Install-VerifiedModel 'eng' '7D4322BD2A7749724879683FC3912CB542F19906C83BCC1A52132556427170B2'
     Install-VerifiedModel 'kat' '557ABB6F1C68BC1B286F1BDD00BB6B82F85A427A91899807DAB6C2F6C7986731'
+    Install-VerifiedModel 'rus' 'E16E5E036CCE1D9EC2B00063CF8B54472625B9E14D893A169E2B0DEDEB4DF225'
     Install-VerifiedModel 'osd' '9CF5D576FCC47564F11265841E5CA839001E7E6F38FF7F7AACF46D15A96B00FF'
 } else {
     Write-Warning 'Tesseract setup was skipped. Markdown and Excel extraction can work, but OCR commands will fail until Tesseract and OCR models are configured.'

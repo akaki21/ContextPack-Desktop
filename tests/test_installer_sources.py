@@ -39,6 +39,25 @@ class InstallerSourceTests(unittest.TestCase):
             self.assertTrue(path.is_file(), f"Missing installer asset: {relative}")
             self.assertGreater(path.stat().st_size, 0)
 
+    def test_portable_release_includes_python_application_package(self) -> None:
+        source = (ROOT / "installer" / "build-release.ps1").read_text(encoding="utf-8-sig")
+        self.assertIn("'contextpack'", source)
+        self.assertIn("'powershell'", source)
+
+    def test_structured_powershell_modules_and_root_entry_points_exist(self) -> None:
+        for relative in (
+            "powershell/Core/ContextPack.Environment.ps1",
+            "powershell/Core/ContextPack.Build.ps1",
+            "powershell/Core/ContextPack.Manifest.ps1",
+            "powershell/Excel/ContextPack.ExcelCom.ps1",
+            "powershell/Excel/ContextPack.ExcelLayoutExport.ps1",
+            "contextpack.ps1",
+            "common.ps1",
+            "excel-package.ps1",
+            "pdf-package.ps1",
+        ):
+            self.assertTrue((ROOT / relative).is_file(), f"Missing structured module or stable entry point: {relative}")
+
 
 if __name__ == "__main__":
     unittest.main()

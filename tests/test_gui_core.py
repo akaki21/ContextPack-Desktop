@@ -23,6 +23,27 @@ from contextpack_gui import (
 
 
 class GuiCoreTests(unittest.TestCase):
+    def test_quality_warning_event_is_retained_for_completion_dialog(self) -> None:
+        gui = Mock(spec=ContextPackGui)
+        gui.language = 'en'
+        gui.job_has_warnings = False
+        ContextPackGui._handle_line(gui, json.dumps({'contextpack_event': 1, 'type': 'warning', 'message': 'Sparse page 2'}))
+        self.assertTrue(gui.job_has_warnings)
+        gui._append_log.assert_called()
+
+    def test_processing_options_reach_the_runner_and_validate(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / 'norm.html'
+            source.write_text('fixture', encoding='utf-8')
+            options = JobOptions(source, ocr_languages='rus+eng', pdf_render_mode='Sparse', max_render_pages=20, source_policy='Reference', ocr_pdf_policy='Temporary', force=True)
+            self.assertIsNone(validate_options(options))
+            command = build_runner_command('Convert', options=options)
+            for value in ['rus+eng', 'Sparse', '20', 'Reference', 'Temporary', '-Force']:
+                self.assertIn(value, command)
+            self.assertIsNotNone(validate_options(JobOptions(source, ocr_languages='../../unknown')))
+            self.assertIsNotNone(validate_options(JobOptions(source, max_render_pages=-1)))
+            self.assertIsNotNone(validate_options(JobOptions(source, ocr_pdf_policy='unknown')))
+
     def test_classifies_supported_inputs(self) -> None:
         self.assertEqual(classify_input(Path("report.pdf")), "pdf")
         self.assertEqual(classify_input(Path("budget.XLSX")), "excel")

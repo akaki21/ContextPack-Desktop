@@ -21,8 +21,8 @@ if ($python) {
 
 Write-Host 'Tesseract and project OCR languages:' -ForegroundColor Cyan
 try {
-    $tesseract = Enable-ContextPackOcr
-    & $tesseract --tessdata-dir (Join-Path $root 'tessdata') --list-langs
+    $tesseract = Enable-ContextPackOcr -Languages 'kat+eng+rus'
+    & $tesseract --tessdata-dir (Get-ContextPackTessdata) --list-langs
     if ($LASTEXITCODE -ne 0) { throw "Tesseract exited with code $LASTEXITCODE" }
 } catch { $failures++; Write-Warning $_.Exception.Message }
 

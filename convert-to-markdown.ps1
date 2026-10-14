@@ -27,6 +27,8 @@ else {
     if ($parent) { New-Item -ItemType Directory -Path $parent -Force | Out-Null }
 }
 
-& $python -m markitdown $inputPath -o $OutputFile
-if ($LASTEXITCODE -ne 0) { throw "MarkItDown failed with exit code: $LASTEXITCODE" }
+if ([System.IO.Path]::GetFullPath($OutputFile).Equals($inputPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+    throw 'Output would overwrite the source. Choose a different output file or folder.'
+}
+Invoke-ContextPackNative -Executable $python -Arguments @('-m', 'markitdown', $inputPath, '-o', $OutputFile)
 Write-Host "Ready: $OutputFile" -ForegroundColor Green

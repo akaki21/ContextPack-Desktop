@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$WorkDirectory,
     [switch]$RequireExcel,
     [switch]$SkipOcr,
@@ -8,7 +8,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$python = Join-Path $root '.venv\Scripts\python.exe'
+. (Join-Path $root 'common.ps1')
+$python = Get-ContextPackPython
 if (-not (Test-Path -LiteralPath $python -PathType Leaf)) { throw 'Run setup.ps1 before the end-to-end tests.' }
 
 $ownsWorkDirectory = [string]::IsNullOrWhiteSpace($WorkDirectory)
@@ -27,7 +28,9 @@ function Assert-True {
 
 function Read-JsonFile {
     param([string]$Path)
-    return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    $decoded = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    # Windows PowerShell 5 can return a JSON array as one pipeline object.
+    foreach ($item in $decoded) { $item }
 }
 
 try {
@@ -53,13 +56,21 @@ try {
     $excelAvailable = $null -ne [Type]::GetTypeFromProgID('Excel.Application')
     if ($RequireExcel -and -not $excelAvailable) { throw 'Microsoft Excel is required for this E2E run but was not detected.' }
     $excelFixture = Join-Path $fixtures 'sample.xlsx'
+    $excelSourceHash = (Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash
     if ($excelAvailable) {
-        & (Join-Path $root 'contextpack.ps1') $excelFixture -Mode Full -Dpi 96 -ExcelRenderMode Workbook -OutputDirectory $output
+        & (Join-Path $root 'contextpack.ps1') $excelFixture -Mode Full -Dpi 96 -ExcelRenderMode Both -OutputDirectory $output
         $excelPackage = Join-Path $output 'sample_excel_package'
         $excelManifest = Read-JsonFile (Join-Path $excelPackage 'manifest.json')
         Assert-True ($excelManifest.package_type -eq 'excel') 'Excel manifest has the wrong package type.'
-        Assert-True ($excelManifest.settings.render_mode -eq 'Workbook') 'Excel render mode was not recorded.'
-        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\workbook-layout\pages\page-001.png') -PathType Leaf) 'Excel rendered page is missing.'
+        Assert-True ($excelManifest.settings.render_mode -eq 'Both') 'Excel render mode was not recorded.'
+        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\workbook-layout\pages\page-001.png') -PathType Leaf) 'Excel workbook-layout page is missing.'
+        Assert-True (Test-Path -LiteralPath (Join-Path $excelPackage 'rendered-sheets\auto-layout\pages\page-001.png') -PathType Leaf) 'Excel auto-layout page is missing.'
+        $layoutReport = @(Read-JsonFile (Join-Path $excelPackage 'print-layout-report.json'))
+        $autoLayoutDiagnostics = @($layoutReport | Where-Object { $_.layout -eq 'AutoFit' })
+        Assert-True ($autoLayoutDiagnostics.Count -eq 1) 'Excel AutoFit diagnostics are missing.'
+        Assert-True ($autoLayoutDiagnostics[0].status -eq 'applied') 'Excel AutoFit was not applied to the safe fixture.'
+        Assert-True ($autoLayoutDiagnostics[0].fit_to_pages_wide -eq 3) 'Excel AutoFit did not split the 17-column fixture across three horizontal pages.'
+        Assert-True (($autoLayoutDiagnostics[0].reasons -join ' ') -match 'split across 3 pages') 'Excel AutoFit pagination guidance is missing.'
     } else {
         $excelPackage = Join-Path $output 'sample_excel_extracted'
         & $python (Join-Path $root 'extract-excel-package.py') $excelFixture $excelPackage
@@ -67,6 +78,7 @@ try {
     }
     $formulaText = Get-Content -LiteralPath (Join-Path $excelPackage 'sheets-data\01-Estimate\formulas.md') -Raw -Encoding UTF8
     Assert-True ($formulaText -match '=B2\*C2') 'Excel formula B2*C2 was not preserved.'
+    Assert-True ((Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash -eq $excelSourceHash) 'Excel processing changed the source workbook.'
     Assert-True ((Get-FileHash -LiteralPath $excelFixture -Algorithm SHA256).Hash -eq (Get-FileHash -LiteralPath (Join-Path $excelPackage 'sample.xlsx') -Algorithm SHA256).Hash) 'Packaged workbook differs from the source.'
 
     if (-not $SkipOcr) {
@@ -74,6 +86,16 @@ try {
         & (Join-Path $root 'contextpack.ps1') (Join-Path $fixtures 'sample-scan.png') -Mode Ocr -OutputDirectory $output
         $imageText = Get-Content -LiteralPath (Join-Path $output 'sample-scan.txt') -Raw -Encoding UTF8
         Assert-True ($imageText -match 'CONTEXT\s+PACK\s+OCR') 'Image OCR did not recover the expected text.'
+
+        # Exercise selected-language OCR through the same Windows runner as the GUI.
+        # Tesseract writes progress to stderr; this must not turn a successful job into an error.
+        $runnerShell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+        $runnerEvents = & $runnerShell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'contextpack-gui-runner.ps1') -InputFile (Join-Path $fixtures 'russian-scan.png') -Mode Ocr -OcrLanguages rus -OutputDirectory $output
+        Assert-True ($LASTEXITCODE -eq 0) 'Russian image OCR failed in the GUI runner.'
+        Assert-True (($runnerEvents -join "`n") -match '"type":"result"') 'GUI runner did not emit the Russian OCR result.'
+        $russianText = Get-Content -LiteralPath (Join-Path $output 'russian-scan.txt') -Raw -Encoding UTF8
+        Assert-True ($russianText -match 'АВТОМОБИЛЬНЫЕ\s+ДОРОГИ') 'Russian title was not recovered.'
+        Assert-True ($russianText -match '14,5') 'Russian decimal comma value was not preserved in the OCR fixture.'
 
         if (-not $SkipPdfOcr) {
             # Scanned PDF OCR through OCRmyPDF and the complete PDF packaging path.

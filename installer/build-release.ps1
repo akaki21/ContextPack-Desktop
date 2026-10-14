@@ -1,4 +1,4 @@
-param([string]$Version = '2.2.0')
+﻿param([string]$Version = '2.3.1')
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -26,7 +26,9 @@ try {
             Copy-Item -LiteralPath $file.FullName -Destination (Join-Path $packageRoot $file.Name) -Force
         }
     }
-    foreach ($directory in @('assets', 'docs', 'examples')) { Copy-ReleaseDirectory $directory }
+    # Keep code packages explicit so a portable release cannot silently omit
+    # modules imported by the stable root-level launchers.
+    foreach ($directory in @('assets', 'contextpack', 'powershell', 'docs', 'examples')) { Copy-ReleaseDirectory $directory }
     foreach ($directory in @('input', 'output', 'tessdata')) {
         $destination = Join-Path $packageRoot $directory
         New-Item -ItemType Directory -Path $destination -Force | Out-Null

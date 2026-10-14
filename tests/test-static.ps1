@@ -11,24 +11,86 @@ foreach ($file in Get-ChildItem -LiteralPath $root -Filter '*.ps1' -Recurse | Wh
 
 $sourceText = Get-ChildItem -LiteralPath $root -File -Recurse | Where-Object { $_.Extension -in @('.ps1', '.py') -and $_.FullName -notmatch '[\\/]\.venv[\\/]' } | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw -Encoding UTF8 }
 if (($sourceText -join "`n") -match 'C:\\Users\\') { $failures += 'A user-specific Windows path was found.' }
+$coreModules = Join-Path $root 'powershell\Core'
+$excelModules = Join-Path $root 'powershell\Excel'
 $excelScript = Get-Content -LiteralPath (Join-Path $root 'excel-package.ps1') -Raw -Encoding UTF8
-if ($excelScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
-if ($excelScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
-if ($excelScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Automatic external-link updates are not disabled.' }
+$excelComScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelCom.ps1') -Raw -Encoding UTF8
+$excelDiagnosticsScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelDiagnostics.ps1') -Raw -Encoding UTF8
+$excelPaginationScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelPagination.ps1') -Raw -Encoding UTF8
+$excelAutoFitScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelAutoFit.ps1') -Raw -Encoding UTF8
+$excelLayoutExportScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelLayoutExport.ps1') -Raw -Encoding UTF8
+$excelWorkbookLayoutScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelWorkbookLayout.ps1') -Raw -Encoding UTF8
+$excelAutoFitLayoutScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelAutoFitLayout.ps1') -Raw -Encoding UTF8
+$excelLayoutReportScript = Get-Content -LiteralPath (Join-Path $excelModules 'ContextPack.ExcelLayoutReport.ps1') -Raw -Encoding UTF8
+if ($excelScript -notmatch 'powershell[\\/]Excel') { $failures += 'Excel packaging does not load helpers from the structured PowerShell directory.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelCom\.ps1') { $failures += 'Excel packaging does not load the COM lifecycle helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelDiagnostics\.ps1') { $failures += 'Excel packaging does not load the layout diagnostics helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelPagination\.ps1') { $failures += 'Excel packaging does not load the pagination helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelAutoFit\.ps1') { $failures += 'Excel packaging does not load the AutoFit decision helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelLayoutExport\.ps1') { $failures += 'Excel packaging does not load the layout-export helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelWorkbookLayout\.ps1') { $failures += 'Excel packaging does not load the workbook-layout orchestration helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelAutoFitLayout\.ps1') { $failures += 'Excel packaging does not load the AutoFit-layout orchestration helper.' }
+if ($excelScript -notmatch 'ContextPack\.ExcelLayoutReport\.ps1') { $failures += 'Excel packaging does not load the layout-report helper.' }
+if ($excelComScript -notmatch 'AutomationSecurity\s*=\s*3') { $failures += 'Excel macros are not force-disabled.' }
+if ($excelComScript -notmatch 'EnableEvents\s*=\s*\$false') { $failures += 'Excel events are not disabled.' }
+if ($excelComScript -notmatch 'AskToUpdateLinks\s*=\s*\$false') { $failures += 'Automatic external-link updates are not disabled.' }
+if ($excelComScript -notmatch 'function\s+Release-ExcelComObject') { $failures += 'The shared Excel COM release helper is missing.' }
+if ($excelScript -match 'Marshal\]::ReleaseComObject') { $failures += 'Excel packaging bypasses the shared COM release helper.' }
+if ($excelDiagnosticsScript -notmatch 'Get-ExcelManualPageBreakCount') { $failures += 'Excel manual page-break diagnostics are missing.' }
+if ($excelDiagnosticsScript -notmatch 'Get-ExcelShapeCount') { $failures += 'Excel shape diagnostics are missing.' }
+if ($excelDiagnosticsScript -notmatch '-4135') { $failures += 'Excel manual page-break type detection is missing.' }
+if ($excelAutoFitScript -notmatch 'Get-ContextPackExcelAutoFitDecision') { $failures += 'Excel AutoFit decision helper is missing.' }
+if ($excelPaginationScript -notmatch 'Get-ContextPackExcelHorizontalPageCount') { $failures += 'Excel horizontal pagination planning is missing.' }
+if ($excelLayoutExportScript -notmatch 'Complete-ContextPackExcelComCleanup') { $failures += 'Excel layout export does not guarantee COM cleanup.' }
+if ($excelLayoutExportScript -notmatch 'ExportAsFixedFormat\(0,\s*\$PdfPath,\s*0,\s*\$true,\s*\$false\)') { $failures += 'Excel layout PDF export arguments changed.' }
+if ($excelWorkbookLayoutScript -notmatch 'Join-Path\s+\$RenderedDirectory\s+''workbook-layout''') { $failures += 'The authoritative workbook-layout output path changed.' }
+if ($excelWorkbookLayoutScript -notmatch 'complete PDF is preserved') { $failures += 'Workbook rendering no longer documents the complete-PDF fallback.' }
+if ($excelAutoFitLayoutScript -notmatch 'Join-Path\s+\$RenderedDirectory\s+''auto-layout''') { $failures += 'The AutoFit-layout output path changed.' }
+if ($excelAutoFitLayoutScript -notmatch 'complete PDF is preserved') { $failures += 'AutoFit rendering no longer documents the complete-PDF fallback.' }
+if ($excelLayoutReportScript -notmatch 'Join-Path\s+\$PackageDirectory\s+''print-layout-report\.json''') { $failures += 'The Excel print-layout report path changed.' }
+if ($excelLayoutReportScript -notmatch 'AutoFit skipped for sheet') { $failures += 'The Excel layout report no longer summarizes skipped AutoFit sheets.' }
 if ($excelScript -notmatch "ValidateSet\('Workbook',\s*'AutoFit',\s*'Both'\)") { $failures += 'Excel render-mode validation is missing.' }
 if ($excelScript -notmatch "RenderMode\s*=\s*'Both'") { $failures += 'Safe dual Excel rendering is not the default.' }
-if ($excelScript -notmatch 'Workbooks\.Open\(\$inputPath,\s*0,\s*\$true\)') { $failures += 'Excel workbook is not opened read-only.' }
+if ($excelScript -notmatch 'if\s*\(\$RenderMode\s+-in\s+@\(''Workbook'',\s*''Both''\)\)') { $failures += 'Both mode no longer includes the authoritative workbook layout.' }
+if ($excelPaginationScript -notmatch 'Ceiling\(\$PopulatedColumnSpan\s*/\s*8\.0\)') { $failures += 'AutoFit does not adapt horizontal pagination for readability.' }
+if ($excelScript -notmatch '\$maxRenderedPages\s*=\s*1000') { $failures += 'Excel page rendering does not use the reviewed safety limit.' }
+if ($excelComScript -notmatch '\.Open\(\$Path,\s*0,\s*\$true\)') { $failures += 'Excel workbook is not opened read-only.' }
 $contextScript = Get-Content -LiteralPath (Join-Path $root 'contextpack.ps1') -Raw -Encoding UTF8
 if ($contextScript -notmatch 'MaxAutoFitColumns') { $failures += 'The main router does not expose the AutoFit width limit.' }
 if ($contextScript -notmatch 'OutputDirectory') { $failures += 'The main router does not expose a custom output directory.' }
+$routingScriptPath = Join-Path $root 'contextpack-routing.ps1'
+. $routingScriptPath
+if ((Get-ContextPackInputType 'sample.PDF') -ne 'Pdf') { $failures += 'PDF routing is not case-insensitive.' }
+if ((Get-ContextPackInputType 'sample.XLSM') -ne 'Excel') { $failures += 'Excel routing does not recognize macro-enabled workbooks.' }
+if ((Get-ContextPackInputType 'sample.WEBP') -ne 'Image') { $failures += 'Image routing does not recognize WebP.' }
+if ((Get-ContextPackInputType 'sample.docx') -ne 'Document') { $failures += 'Generic document routing is unavailable.' }
 $guiRunner = Get-Content -LiteralPath (Join-Path $root 'contextpack-gui-runner.ps1') -Raw -Encoding UTF8
 if ($guiRunner -notmatch 'contextpack_event') { $failures += 'The GUI runner does not emit structured events.' }
 if ($guiRunner -notmatch 'OperationCanceledException') { $failures += 'The GUI runner does not support cooperative cancellation.' }
 $commonScript = Get-Content -LiteralPath (Join-Path $root 'common.ps1') -Raw -Encoding UTF8
-if ($commonScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
+$environmentScript = Get-Content -LiteralPath (Join-Path $coreModules 'ContextPack.Environment.ps1') -Raw -Encoding UTF8
+$buildScript = Get-Content -LiteralPath (Join-Path $coreModules 'ContextPack.Build.ps1') -Raw -Encoding UTF8
+if ($buildScript -notmatch 'OutputRoot') { $failures += 'Atomic package builds do not retain their selected output root.' }
+if ($commonScript -notmatch 'powershell[\\/]Core') { $failures += 'The common compatibility loader does not use the structured Core directory.' }
+if ($environmentScript -notmatch 'Split-Path\s+-Parent\s+\(Split-Path\s+-Parent\s+\$PSScriptRoot\)') { $failures += 'The moved environment module no longer resolves the project root.' }
+if ($buildScript -notmatch 'Split-Path\s+-Parent\s+\(Split-Path\s+-Parent\s+\$PSScriptRoot\)') { $failures += 'The moved build module no longer resolves the project root.' }
+foreach ($module in @('ContextPack.Environment.ps1', 'ContextPack.Build.ps1', 'ContextPack.Manifest.ps1')) {
+    if ($commonScript -notmatch [regex]::Escape($module)) { $failures += "The common compatibility loader does not include $module." }
+}
+foreach ($oldRootModule in @('ContextPack.Environment.ps1', 'ContextPack.Build.ps1', 'ContextPack.Manifest.ps1', 'ContextPack.ExcelCom.ps1')) {
+    if (Test-Path -LiteralPath (Join-Path $root $oldRootModule)) { $failures += "A moved PowerShell module remains duplicated at the repository root: $oldRootModule" }
+}
 $installerScript = Get-Content -LiteralPath (Join-Path $root 'installer\ContextPack.iss') -Raw -Encoding UTF8
 if ($installerScript -match 'createallsubdirs') { $failures += 'Installer creates excluded directories and can break first-run setup.' }
 if ($installerScript -notmatch 'PrivilegesRequired=lowest') { $failures += 'Installer is not configured for a per-user install.' }
 
 if ($failures.Count) { $failures | ForEach-Object { Write-Error $_ }; exit 1 }
+& (Join-Path $PSScriptRoot 'test-excel-com.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-diagnostics.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-pagination.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-autofit.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-layout-export.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-workbook-layout.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-autofit-layout.ps1')
+& (Join-Path $PSScriptRoot 'test-excel-layout-report.ps1')
 Write-Host 'Static PowerShell safety checks passed.' -ForegroundColor Green

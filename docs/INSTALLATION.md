@@ -46,3 +46,7 @@ Get-FileHash .\ContextPack-Setup-2.2.0.exe -Algorithm SHA256
 ```
 
 Compare the result with the matching line in `SHA256SUMS-2.2.0.txt`.
+
+## Updating to the 2.3 source version
+
+After updating the code, rerun `setup.ps1` and `check-environment.ps1`. Setup adds `html5lib` and the verified Russian OCR model alongside English and Georgian. Source changes and an installer release are separate; use the source setup until a matching installer is published.

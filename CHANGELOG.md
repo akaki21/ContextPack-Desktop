@@ -4,6 +4,25 @@ All notable user-facing changes to ContextPack Desktop are recorded here.
 
 [ქართული ვერსია](CHANGELOG.ka.md)
 
+## 2.3.1 — 2026-10-14 (source update)
+
+- Optional temporary OCR PDFs, short scratch root, selected original page numbers and accurate output manifests.
+- Source-hash-bound raw snapshots and append-only review journals survive cache reuse and forced regeneration.
+- Georgian/English GUI OCR storage option and practical verification checklist.
+- Portable Keep/Copy behavior and independent Excel/HTML rendering remain available.
+
+## 2.3.0 — 2026-10-14 (source update)
+
+- Added selectable English/Georgian/Russian OCR and a checksum-pinned Russian model.
+- Added HTML packages with original anchors, merged-cell grids, local assets and unverified quality reports.
+- PDF Auto now detects individual sparse/damaged pages. Added image OCR recovery, text/TSV provenance and explicit unresolved-page diagnostics.
+- Added PDF image budgets, original references and verified PDF/HTML package reuse with code/settings/dependency invalidation.
+- Preserve edited previous packages; reject source-overwriting text conversion and package destinations containing the input.
+- Added GUI storage/OCR settings and fail-with-error behavior when no completed output is returned.
+- Surface quality warnings in the completion dialog; handle native-tool stderr progress correctly under the Windows PowerShell GUI runner.
+- Added regression and Windows PowerShell integration tests. Fixed JSON-array enumeration in the existing Excel E2E test under Windows PowerShell 5.
+- Added runtime/tessdata overrides for isolated development without copying installed environments.
+
 ## 2.2.0 — 2026-08-01
 
 - Added a dependency-free Tkinter desktop GUI and double-click Windows launcher.

@@ -6,7 +6,14 @@
     [ValidateSet('Workbook', 'AutoFit', 'Both')][string]$ExcelRenderMode = 'Both',
     [ValidateRange(10, 200)][int]$MaxAutoFitColumns = 60,
     [string]$OutputDirectory,
-    [string]$CancelFile
+    [string]$CancelFile,
+    [ValidatePattern('^(eng|kat|rus)(\+(eng|kat|rus))*$')][string]$OcrLanguages = 'kat+eng',
+    [ValidateSet('All', 'Sparse', 'None')][string]$PdfRenderMode = 'All',
+    [ValidateRange(0, 100000)][int]$MaxRenderPages = 100,
+    [ValidateSet('Copy', 'Reference')][string]$SourcePolicy = 'Copy',
+    [ValidateSet('Keep', 'Temporary')][string]$OcrPdfPolicy = 'Keep',
+    [string]$PdfPages,
+    [switch]$Force
 )
 
 $ErrorActionPreference = 'Stop'
@@ -53,7 +60,7 @@ function Write-ToolLine {
         Write-GuiEvent -Type 'status' -Stage 'extract' -Message 'Workbook data extracted.' -Progress 40
     } elseif ($line -match '^Rendered\s+\d+\s+pages') {
         Write-GuiEvent -Type 'status' -Stage 'render' -Message 'Visual pages rendered.' -Progress 78
-    } elseif ($line -match '^(?:PDF|Excel) package ready:\s*(.+)$') {
+    } elseif ($line -match '^(?:PDF|Excel|HTML) package ready:\s*(.+)$') {
         $script:resultPath = $Matches[1].Trim()
         Write-GuiEvent -Type 'status' -Stage 'finalize' -Message 'Package finalized.' -Progress 95 -OutputPath $script:resultPath
     } elseif ($line -match '^Ready:\s*(.+)$') {
@@ -105,7 +112,7 @@ try {
 
     if ($Action -eq 'Setup') {
         Write-GuiEvent -Type 'status' -Stage 'setup' -Message 'Installing or repairing dependencies...' -Progress 10
-        Invoke-ContextPackScript -ScriptPath (Join-Path $root 'setup.ps1')
+        Invoke-ChildPowerShellScript -ScriptPath (Join-Path $root 'setup.ps1')
         Write-GuiEvent -Type 'status' -Stage 'environment' -Message 'Verifying the environment...' -Progress 85
         Invoke-ChildPowerShellScript -ScriptPath (Join-Path $root 'check-environment.ps1')
         Write-GuiEvent -Type 'result' -Stage 'complete' -Message 'Setup and environment check completed.' -Progress 100
@@ -125,18 +132,31 @@ try {
         ExcelRenderMode = $ExcelRenderMode
         MaxAutoFitColumns = $MaxAutoFitColumns
         OutputDirectory = $OutputDirectory
+        OcrLanguages = $OcrLanguages
+        PdfRenderMode = $PdfRenderMode
+        MaxRenderPages = $MaxRenderPages
+        OcrPdfPolicy = $OcrPdfPolicy
+        PdfPages = $PdfPages
+        SourcePolicy = $SourcePolicy
+        Force = $Force
+        CancelFile = $CancelFile
     }
     Write-GuiEvent -Type 'status' -Stage 'process' -Message 'ContextPack is processing the file...' -Progress 15
     Invoke-ContextPackScript -ScriptPath (Join-Path $root 'contextpack.ps1') -Arguments $arguments
 
     if (-not $script:resultPath) {
-        $script:resultPath = if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
-            Join-Path $root 'output'
-        } else {
-            [System.IO.Path]::GetFullPath($OutputDirectory)
+        throw 'The processor did not return a completed result. Review the log.'
+    }
+    $completionMessage = 'The job completed successfully.'
+    $resultManifest = Join-Path $script:resultPath 'manifest.json'
+    if (Test-Path -LiteralPath $resultManifest -PathType Leaf) {
+        $metadata = Get-Content -LiteralPath $resultManifest -Raw -Encoding UTF8 | ConvertFrom-Json
+        if (@($metadata.warnings).Count -gt 0) {
+            Write-GuiEvent -Type 'warning' -Stage 'review' -Message ($metadata.warnings -join ' | ')
+            $completionMessage = 'The job completed with review warnings.'
         }
     }
-    Write-GuiEvent -Type 'result' -Stage 'complete' -Message 'The job completed successfully.' -Progress 100 -OutputPath $script:resultPath
+    Write-GuiEvent -Type 'result' -Stage 'complete' -Message $completionMessage -Progress 100 -OutputPath $script:resultPath
     exit 0
 } catch [System.OperationCanceledException] {
     Write-GuiEvent -Type 'cancelled' -Stage 'cancelled' -Message 'The job was cancelled safely.' -Progress 0

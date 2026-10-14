@@ -1,0 +1,24 @@
+"""Data passed from the Desktop interface to a processing job."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class JobOptions:
+    """A validated snapshot of the processing choices made in the GUI."""
+
+    input_file: Path
+    mode: str = "Auto"
+    dpi: int = 180
+    excel_render_mode: str = "Both"
+    max_autofit_columns: int = 60
+    output_directory: Path | None = None
+    ocr_languages: str = 'kat+eng'
+    pdf_render_mode: str = 'All'
+    max_render_pages: int = 100
+    source_policy: str = 'Copy'
+    ocr_pdf_policy: str = 'Keep'
+    force: bool = False

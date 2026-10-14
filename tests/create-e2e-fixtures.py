@@ -5,6 +5,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
+from openpyxl.utils import get_column_letter
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -49,7 +50,22 @@ def create_workbook(path: Path) -> None:
     sheet.sheet_properties.pageSetUpPr.fitToPage = True
     for column, width in {"A": 24, "B": 12, "C": 14, "D": 14}.items():
         sheet.column_dimensions[column].width = width
+    for column_index in range(5, 18):
+        column = get_column_letter(column_index)
+        sheet.cell(row=1, column=column_index, value=f"Field {column_index}").font = Font(bold=True)
+        sheet.cell(row=2, column=column_index, value=f"Value {column_index}-A")
+        sheet.cell(row=3, column=column_index, value=f"Value {column_index}-B")
+        sheet.column_dimensions[column].width = 12
     workbook.save(path)
+
+
+def create_russian_scan(path: Path) -> None:
+    with Image.new('RGB', (1800, 600), 'white') as image:
+        draw = ImageDraw.Draw(image)
+        draw.text((80, 80), 'АВТОМОБИЛЬНЫЕ ДОРОГИ', fill='black', font=load_font(64))
+        draw.text((80, 230), 'Толщина слоя 15 см', fill='black', font=load_font(48))
+        draw.text((80, 340), 'Затраты труда 14,5 чел.-ч', fill='black', font=load_font(48))
+        image.save(path, dpi=(300, 300))
 
 
 def main() -> None:
@@ -62,6 +78,7 @@ def main() -> None:
     image = create_ocr_image(output / "sample-scan.png")
     image.save(output / "sample-scan.pdf", "PDF", resolution=300.0)
     create_workbook(output / "sample.xlsx")
+    create_russian_scan(output / 'russian-scan.png')
     (output / "sample.md").write_text(
         "# ContextPack Markdown fixture\n\nA small bilingual check: English / ქართული.\n",
         encoding="utf-8",
