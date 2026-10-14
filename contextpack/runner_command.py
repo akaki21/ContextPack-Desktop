@@ -55,6 +55,7 @@ def build_runner_command(
                 '-PdfRenderMode', options.pdf_render_mode,
                 '-MaxRenderPages', str(options.max_render_pages),
                 '-SourcePolicy', options.source_policy,
+                '-OcrPdfPolicy', options.ocr_pdf_policy,
             ]
         )
         if options.output_directory is not None:

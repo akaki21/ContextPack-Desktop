@@ -225,3 +225,6 @@ Processing is local. ContextPack does not upload documents. `.venv`, `input`, ge
 [MIT](LICENSE)
 
 Release history: [CHANGELOG.md](CHANGELOG.md)
+
+
+For 2.3.1 economical PDF storage, selected-page extraction and durable review history, see [Library storage and review](docs/LIBRARY_REVIEW.md).

@@ -58,6 +58,9 @@ def validate_cache(package: Path, signature: str, source_hash: str) -> tuple[boo
             return False, 'manifest_changed'
         if not cache.get('files') or cache['files'] != package_files(package):
             return False, 'outputs_changed'
+        if manifest.get('outputs', {}).get('review'):
+            from .review import verify_package_review
+            verify_package_review(package, source_hash)
         return True, 'verified'
     except (OSError, ValueError, KeyError, TypeError):
         return False, 'unreadable_or_unsealed'

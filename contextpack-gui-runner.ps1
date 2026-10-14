@@ -11,6 +11,8 @@
     [ValidateSet('All', 'Sparse', 'None')][string]$PdfRenderMode = 'All',
     [ValidateRange(0, 100000)][int]$MaxRenderPages = 100,
     [ValidateSet('Copy', 'Reference')][string]$SourcePolicy = 'Copy',
+    [ValidateSet('Keep', 'Temporary')][string]$OcrPdfPolicy = 'Keep',
+    [string]$PdfPages,
     [switch]$Force
 )
 
@@ -133,6 +135,8 @@ try {
         OcrLanguages = $OcrLanguages
         PdfRenderMode = $PdfRenderMode
         MaxRenderPages = $MaxRenderPages
+        OcrPdfPolicy = $OcrPdfPolicy
+        PdfPages = $PdfPages
         SourcePolicy = $SourcePolicy
         Force = $Force
         CancelFile = $CancelFile

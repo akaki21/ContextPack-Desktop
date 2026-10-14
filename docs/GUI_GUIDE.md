@@ -39,3 +39,6 @@ The **Copy AI task** action places the result path and recommended reading order
 ## OCR and storage settings
 
 Open **OCR and PDF/HTML storage settings…** below the main options to choose Russian/English/Georgian OCR, PDF image mode/limit, original copying/referencing, and forced reprocessing. The interface language is independent of OCR. [Details and review workflow](DOCUMENT_LIBRARY.md).
+
+
+For 2.3.1 economical PDF storage, selected-page extraction and durable review history, see [Library storage and review](LIBRARY_REVIEW.md).

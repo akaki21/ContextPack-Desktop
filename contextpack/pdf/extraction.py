@@ -5,6 +5,9 @@ from contextlib import closing
 import csv
 import json
 import math
+import os
+import re
+import shutil
 from pathlib import Path
 import subprocess
 import tempfile
@@ -46,11 +49,12 @@ def ocr_page(page, *, output: Path, number: int, tesseract: str, tessdata: str,
     base = output / f'page-{number:03d}'
     info: dict = {'attempted': True, 'status': 'failed', 'languages': languages,
                   'method': 'rendered_page_tesseract', 'review_required': True}
-    with tempfile.TemporaryDirectory(prefix='.ocr-page-', dir=output.parent) as temporary:
+    with tempfile.TemporaryDirectory(prefix='.ocr-page-', dir=os.environ.get('CONTEXTPACK_TEMP') or output.parent) as temporary:
         png = Path(temporary) / 'page.png'
+        temporary_base = Path(temporary) / 'result'
         dpi = render_page(page, png, 300)
         info['dpi'] = dpi
-        command = [tesseract, str(png), str(base), '--tessdata-dir', tessdata, '-l', languages, '--dpi', str(dpi), 'txt', 'tsv']
+        command = [tesseract, str(png), str(temporary_base), '--tessdata-dir', tessdata, '-l', languages, '--dpi', str(dpi), 'txt', 'tsv']
         try:
             result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=timeout)
         except (OSError, subprocess.TimeoutExpired) as error:
@@ -59,6 +63,10 @@ def ocr_page(page, *, output: Path, number: int, tesseract: str, tessdata: str,
         if result.returncode:
             info['error'] = result.stderr.strip()[-1500:] or f'Tesseract exit code {result.returncode}'
             return '', info
+        for suffix in ('.txt', '.tsv'):
+            artifact = temporary_base.with_suffix(suffix)
+            if artifact.exists():
+                shutil.copyfile(artifact, base.with_suffix(suffix))
     text_file = base.with_suffix('.txt')
     text = normalize_text(text_file.read_text(encoding='utf-8')) if text_file.exists() else ''
     info.update({'status': 'extracted' if text else 'empty', 'text_file': text_file.name if text_file.exists() else None})
@@ -72,29 +80,49 @@ def ocr_page(page, *, output: Path, number: int, tesseract: str, tessdata: str,
     return text, info
 
 
+def selected_pages(spec: str | None, count: int) -> list[int]:
+    if not spec:
+        return list(range(1, count + 1))
+    if not re.fullmatch(r'\d+(?:-\d+)?(?:,\d+(?:-\d+)?)*', spec):
+        raise ValueError('Pages must be one-based numbers/ranges, e.g. 1,3-5')
+    result = set()
+    for part in spec.split(','):
+        bounds = [int(v) for v in part.split('-')]
+        first, last = bounds[0], bounds[-1]
+        if not 1 <= first <= last <= count:
+            raise ValueError('Page selection is outside the source PDF')
+        result.update(range(first, last + 1))
+    return sorted(result)
+
+
 def extract_pdf(source: Path, destination: Path, *, dpi: int = 180, page_text: Path | None = None,
                 metrics_path: Path | None = None, max_pages: int = 0, render_mode: str = 'All',
                 max_render_pages: int = 0, tesseract: str | None = None, tessdata: str = '',
-                languages: str = 'kat+eng', cancel_file: Path | None = None) -> dict:
+                languages: str = 'kat+eng', cancel_file: Path | None = None,
+                pages: str | None = None, source_name: str | None = None) -> dict:
     if not 72 <= dpi <= 600 or max_pages < 0 or max_render_pages < 0:
         raise ValueError('Invalid DPI or page limit')
     if render_mode not in {'All', 'Sparse', 'None'}:
         raise ValueError('Unknown PDF render mode')
     destination.mkdir(parents=True, exist_ok=True)
-    parts = [f'# Page-aware text — {source.name}\n']
+    parts = [f'# Page-aware text — {source_name or source.name}\n']
+    input_parts = [f'# Input text before fallback OCR — {source_name or source.name}\n']
     metrics = []
     rendered = 0
     with pdfium.PdfDocument(str(source)) as document:
         count = len(document)
         safety_skip = bool(max_pages and count > max_pages)
         digits = max(3, len(str(count)))
-        for index in range(count):
+        selection = selected_pages(pages, count)
+        for number in selection:
+            index = number - 1
             if cancel_file and cancel_file.exists():
                 raise InterruptedError('The job was cancelled between PDF pages.')
             with closing(document[index]) as page:
                 with closing(page.get_textpage()) as text_page:
                     text = normalize_text(text_page.get_text_range())
                 original_count = len(text)
+                input_parts.extend([f'<!-- source-page: {index + 1} -->', f'## Page {index + 1}', '', text, ''])
                 needs_ocr = text_needs_ocr(text)
                 ocr = {'attempted': False, 'status': 'not_requested'}
                 if tesseract and needs_ocr:
@@ -115,13 +143,15 @@ def extract_pdf(source: Path, destination: Path, *, dpi: int = 180, page_text: P
                 sparse = text_needs_ocr(text)
                 metrics.append({'page': index + 1, 'characters': len(text), 'input_text_characters': original_count,
                                 'words': len(text.split()), 'sparse_text': sparse, 'ocr': ocr,
-                                'image': image_name, 'image_dpi': rendered_dpi, 'review_required': sparse or ocr['attempted']})
+                                'image': image_name, 'image_dpi': rendered_dpi, 'review_required': True, 'review_status': 'extracted'})
                 parts.extend([f'<!-- source-page: {index + 1} -->', f'## Page {index + 1}', '',
                               text if text else '_No extractable text on this page. Review the original._', ''])
                 print(f'Processed PDF page {index + 1}/{count}; characters={len(text)}; OCR={ocr["status"]}', flush=True)
     if page_text:
         page_text.write_text('\n'.join(parts), encoding='utf-8')
-    payload = {'source': source.name, 'page_count': count, 'rendered_pages': rendered,
+        page_text.with_name('input-page-text.md').write_text('\n'.join(input_parts), encoding='utf-8')
+    payload = {'source': source_name or source.name, 'page_count': count, 'extracted_pages': selection,
+               'coverage': 'all' if len(selection) == count else 'selected', 'rendered_pages': rendered,
                'render_skipped': rendered == 0 and count > 0, 'render_mode': render_mode,
                'max_pages': max_pages or None, 'max_render_pages': max_render_pages or None,
                'total_characters': sum(p['characters'] for p in metrics),
@@ -151,12 +181,14 @@ def main() -> None:
     parser.add_argument('--tessdata', default='')
     parser.add_argument('--languages', default='kat+eng')
     parser.add_argument('--cancel-file', type=Path)
+    parser.add_argument('--pages', help='One-based source page numbers/ranges, e.g. 1,3-5; omitted means all')
+    parser.add_argument('--source-name', help='Original source label when extracting a temporary OCR PDF')
     args = parser.parse_args()
     try:
         extract_pdf(args.input_pdf.resolve(), args.output_dir.resolve(), dpi=args.dpi, page_text=args.page_text,
                     metrics_path=args.metrics, max_pages=args.max_pages, render_mode=args.render_mode,
                     max_render_pages=args.max_render_pages, tesseract=args.tesseract, tessdata=args.tessdata,
-                    languages=args.languages, cancel_file=args.cancel_file)
+                    languages=args.languages, cancel_file=args.cancel_file, pages=args.pages, source_name=args.source_name)
     except InterruptedError as error:
         print(str(error))
         raise SystemExit(2)

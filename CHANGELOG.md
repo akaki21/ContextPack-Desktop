@@ -4,6 +4,13 @@ All notable user-facing changes to ContextPack Desktop are recorded here.
 
 [ქართული ვერსია](CHANGELOG.ka.md)
 
+## 2.3.1 — 2026-10-14 (source update)
+
+- Optional temporary OCR PDFs, short scratch root, selected original page numbers and accurate output manifests.
+- Source-hash-bound raw snapshots and append-only review journals survive cache reuse and forced regeneration.
+- Georgian/English GUI OCR storage option and practical verification checklist.
+- Portable Keep/Copy behavior and independent Excel/HTML rendering remain available.
+
 ## 2.3.0 — 2026-10-14 (source update)
 
 - Added selectable English/Georgian/Russian OCR and a checksum-pinned Russian model.

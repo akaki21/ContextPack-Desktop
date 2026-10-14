@@ -12,7 +12,7 @@ from typing import Any
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from ..localization import EXCEL_MODE_LABELS, LANGUAGE_LABELS, MODE_LABELS, OCR_LANGUAGE_LABELS, PDF_RENDER_LABELS, SOURCE_POLICY_LABELS, label_for_value
+from ..localization import EXCEL_MODE_LABELS, LANGUAGE_LABELS, MODE_LABELS, OCR_LANGUAGE_LABELS, PDF_RENDER_LABELS, SOURCE_POLICY_LABELS, OCR_PDF_POLICY_LABELS, label_for_value
 from .theme import COLORS
 
 
@@ -92,19 +92,21 @@ def show_processing_options(app: Any) -> tk.Toplevel:
     language = tk.StringVar(dialog, value=next(label for label, code in OCR_LANGUAGE_LABELS.items() if code == app.ocr_languages_var.get()))
     render = tk.StringVar(dialog, value=label_for_value(PDF_RENDER_LABELS, app.language, app.pdf_render_var.get()))
     policy = tk.StringVar(dialog, value=label_for_value(SOURCE_POLICY_LABELS, app.language, app.source_policy_var.get()))
+    ocr_pdf = tk.StringVar(dialog, value=label_for_value(OCR_PDF_POLICY_LABELS, app.language, app.ocr_pdf_policy_var.get()))
     limit = tk.StringVar(dialog, value=str(app.max_render_pages_var.get()))
     force = tk.BooleanVar(dialog, value=app.force_var.get())
     for row, (key, variable, labels) in enumerate([
         ('options.ocr_languages', language, OCR_LANGUAGE_LABELS),
         ('options.pdf_render', render, PDF_RENDER_LABELS[app.language]),
         ('options.source_policy', policy, SOURCE_POLICY_LABELS[app.language]),
+        ('options.ocr_pdf_policy', ocr_pdf, OCR_PDF_POLICY_LABELS[app.language]),
     ]):
         ttk.Label(frame, text=app._t(key)).grid(row=row * 2, column=0, sticky='w', pady=(8, 3))
         ttk.Combobox(frame, textvariable=variable, values=list(labels), state='readonly', width=58).grid(row=row * 2 + 1, column=0, sticky='ew')
-    ttk.Label(frame, text=app._t('options.render_limit')).grid(row=6, column=0, sticky='w', pady=(12, 3))
-    ttk.Spinbox(frame, from_=0, to=100000, textvariable=limit).grid(row=7, column=0, sticky='ew')
-    ttk.Checkbutton(frame, text=app._t('options.force'), variable=force).grid(row=8, column=0, sticky='w', pady=12)
-    ttk.Label(frame, text=app._t('options.reference_hint'), wraplength=540).grid(row=9, column=0, sticky='w')
+    ttk.Label(frame, text=app._t('options.render_limit')).grid(row=8, column=0, sticky='w', pady=(12, 3))
+    ttk.Spinbox(frame, from_=0, to=100000, textvariable=limit).grid(row=9, column=0, sticky='ew')
+    ttk.Checkbutton(frame, text=app._t('options.force'), variable=force).grid(row=10, column=0, sticky='w', pady=12)
+    ttk.Label(frame, text=app._t('options.reference_hint'), wraplength=540).grid(row=11, column=0, sticky='w')
 
     def save() -> None:
         try:
@@ -117,11 +119,13 @@ def show_processing_options(app: Any) -> tk.Toplevel:
         app.ocr_languages_var.set(OCR_LANGUAGE_LABELS[language.get()])
         app.pdf_render_var.set(PDF_RENDER_LABELS[app.language][render.get()])
         app.source_policy_var.set(SOURCE_POLICY_LABELS[app.language][policy.get()])
+        app.ocr_pdf_policy_var.set(OCR_PDF_POLICY_LABELS[app.language][ocr_pdf.get()])
         app.max_render_pages_var.set(value)
         app.force_var.set(force.get())
         dialog.destroy()
 
-    ttk.Button(frame, text=app._t('options.apply'), command=save).grid(row=10, column=0, sticky='e', pady=(16, 0))
+    ttk.Label(frame, text=app._t('options.library_hint'), wraplength=540).grid(row=12, column=0, sticky='w', pady=(8, 0))
+    ttk.Button(frame, text=app._t('options.apply'), command=save).grid(row=13, column=0, sticky='e', pady=(16, 0))
     dialog.grab_set()
     return dialog
 

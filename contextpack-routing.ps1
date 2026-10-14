@@ -1,4 +1,4 @@
-# Processing routes used by the stable contextpack.ps1 entry point.
+﻿# Processing routes used by the stable contextpack.ps1 entry point.
 
 function Resolve-ContextPackInput {
     param([Parameter(Mandatory = $true)][string]$InputFile)
@@ -32,11 +32,14 @@ function Invoke-ContextPackPdf {
         [string]$PdfRenderMode = 'All',
         [int]$MaxRenderPages = 100,
         [string]$SourcePolicy = 'Copy',
+        [string]$OcrPdfPolicy = 'Keep',
+        [string]$PdfPages,
         [switch]$Force,
         [string]$CancelFile
     )
 
     if ($Mode -eq 'Fast') {
+        if ($PdfPages) { throw 'PdfPages requires a PDF package mode (Auto, Full or Ocr).' }
         & (Join-Path $Root 'convert-to-markdown.ps1') -InputFile $InputPath -OutputDirectory $OutputDirectory
         return
     }
@@ -52,7 +55,7 @@ function Invoke-ContextPackPdf {
     }
 
     $packageScript = Join-Path $Root 'pdf-package.ps1'
-    $packageOptions = @{ InputFile = $InputPath; Dpi = $Dpi; OutputDirectory = $OutputDirectory; OcrLanguages = $OcrLanguages; PdfRenderMode = $PdfRenderMode; MaxRenderPages = $MaxRenderPages; SourcePolicy = $SourcePolicy; Force = $Force; CancelFile = $CancelFile }
+    $packageOptions = @{ InputFile = $InputPath; Dpi = $Dpi; OutputDirectory = $OutputDirectory; OcrLanguages = $OcrLanguages; PdfRenderMode = $PdfRenderMode; MaxRenderPages = $MaxRenderPages; SourcePolicy = $SourcePolicy; OcrPdfPolicy = $OcrPdfPolicy; PdfPages = $PdfPages; Force = $Force; CancelFile = $CancelFile }
     if ($useOcr) {
         & $packageScript @packageOptions -Ocr
     } else {
@@ -92,13 +95,15 @@ function Invoke-ContextPackProcessor {
         [string]$PdfRenderMode = 'All',
         [int]$MaxRenderPages = 100,
         [string]$SourcePolicy = 'Copy',
+        [string]$OcrPdfPolicy = 'Keep',
+        [string]$PdfPages,
         [switch]$Force,
         [string]$CancelFile
     )
 
     switch ($InputType) {
         'Pdf' {
-            Invoke-ContextPackPdf -Root $Root -InputPath $InputPath -Mode $Mode -Dpi $Dpi -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages -PdfRenderMode $PdfRenderMode -MaxRenderPages $MaxRenderPages -SourcePolicy $SourcePolicy -Force:$Force -CancelFile $CancelFile
+            Invoke-ContextPackPdf -Root $Root -InputPath $InputPath -Mode $Mode -Dpi $Dpi -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages -PdfRenderMode $PdfRenderMode -MaxRenderPages $MaxRenderPages -SourcePolicy $SourcePolicy -OcrPdfPolicy $OcrPdfPolicy -PdfPages $PdfPages -Force:$Force -CancelFile $CancelFile
         }
         'Html' {
             if ($Mode -eq 'Ocr') { throw 'OCR mode supports PDF and image inputs only.' }

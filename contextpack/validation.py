@@ -31,6 +31,8 @@ def validation_error_key(options: JobOptions) -> str | None:
         return 'validation.pdf_render_mode'
     if not 0 <= options.max_render_pages <= 100000:
         return 'validation.render_limit'
+    if options.ocr_pdf_policy not in {'Keep', 'Temporary'}:
+        return 'validation.ocr_pdf_policy'
     if options.source_policy not in {'Copy', 'Reference'}:
         return 'validation.source_policy'
     if options.mode == "Ocr" and classify_input(options.input_file) not in {"pdf", "image"}:

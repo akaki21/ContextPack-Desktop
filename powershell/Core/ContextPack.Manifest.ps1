@@ -11,6 +11,14 @@ function Write-ContextPackManifest {
     )
     $source = Get-Item -LiteralPath $InputPath
     if ((Get-FileHash -LiteralPath $InputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Build.SourceHash) { throw 'The source changed during processing. The package will not be published.' }
+    if ($PackageType -in @('pdf', 'html')) {
+        $python = Get-ContextPackPython
+        $reviewRoot = Join-Path $Build.OutputRoot '.contextpack-reviews'
+        & $python (Join-Path $script:ContextPackBuildRoot 'review-journal.py') init $Build.BuildPath $InputPath $reviewRoot | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw 'Could not preserve the raw extraction and review journal.' }
+        if ((Get-FileHash -LiteralPath $InputPath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $Build.SourceHash) { throw 'The source changed while preserving review evidence.' }
+        $Outputs['review'] = 'review.json'
+    }
     $manifest = [ordered]@{
         schema_version = 1
         contextpack_version = $script:ContextPackVersion

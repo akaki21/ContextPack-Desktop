@@ -15,6 +15,10 @@ PDF_RENDER_LABELS = {
     'ka': {'ყველა, მითითებულ ზღვრამდე': 'All', 'მხოლოდ სუსტი ტექსტის გვერდები': 'Sparse', 'სურათების გარეშე': 'None'},
     'en': {'All, up to the selected limit': 'All', 'Only pages with sparse text': 'Sparse', 'No saved images': 'None'},
 }
+OCR_PDF_POLICY_LABELS = {
+    'ka': {'OCR PDF-ის შენარჩუნება': 'Keep', 'OCR PDF მხოლოდ დროებით': 'Temporary'},
+    'en': {'Keep the OCR PDF': 'Keep', 'Temporary OCR PDF only': 'Temporary'},
+}
 SOURCE_POLICY_LABELS = {
     'ka': {'დედნის ასლი პაკეტში': 'Copy', 'დედნის მისამართი, ასლის გარეშე': 'Reference'},
     'en': {'Copy the original into the package': 'Copy', 'Reference the original without copying': 'Reference'},
@@ -62,6 +66,9 @@ TEXT = {
         'options.pdf_render': 'PDF გვერდების სურათები',
         'options.render_limit': 'სურათების მაქსიმუმი (0 — შეუზღუდავი)',
         'options.source_policy': 'PDF/HTML დედნის შენახვა',
+        'options.ocr_pdf_policy': 'PDF-ის OCR ასლი',
+        'options.library_hint': 'ეკონომიური PDF: სურათების გარეშე + დედნის მისამართი + დროებითი OCR PDF. Excel-ის ხედები და HTML ილუსტრაციები ცალკე იმართება.',
+        'validation.ocr_pdf_policy': 'OCR PDF-ის შენახვის რეჟიმი უცნობია.',
         'options.force': 'PDF/HTML თავიდან დამუშავდეს; არსებული შედეგი არ გამოიყენოს',
         'options.reference_hint': 'მისამართით შენახვისას დედანი თავის ადგილზე უნდა დარჩეს. ტექსტი ყველა PDF გვერდიდან ამოიღება სურათების ლიმიტის მიუხედავად.',
         'options.apply': 'შენახვა',
@@ -155,6 +162,9 @@ TEXT = {
         'options.pdf_render': 'PDF page images',
         'options.render_limit': 'Maximum saved images (0 = unlimited)',
         'options.source_policy': 'PDF/HTML original storage',
+        'options.ocr_pdf_policy': 'PDF OCR copy',
+        'options.library_hint': 'Economical PDF: No saved images + Reference + Temporary OCR PDF. Excel layouts and HTML illustrations are controlled separately.',
+        'validation.ocr_pdf_policy': 'Unknown OCR PDF storage policy.',
         'options.force': 'Reprocess PDF/HTML instead of reusing a verified package',
         'options.reference_hint': 'Referenced originals must remain at their original location. Text is extracted from every PDF page even when image output is limited.',
         'options.apply': 'Save settings',

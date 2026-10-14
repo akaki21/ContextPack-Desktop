@@ -47,3 +47,6 @@ PDF/HTML packages include a `cache` record in `manifest.json`. Reuse requires ma
 Different sources sharing a base name receive a source-hash suffix. Occupied short-hash destinations are checked before use. A source inside its destination package is rejected. Failed jobs do not replace a valid package. Excel retains its established package/rebuild workflow; the new cache and Reference controls apply to PDF/HTML only.
 
 `render-pdf-pages.py --max-pages` retains the legacy all-or-none PNG safety behavior used by Excel, but now preserves all page text even when PNG rendering is skipped. `--max-render-pages` is a separate saved-image budget; the PDF wrapper sets it to 100 by default. Renders are bounded to 24 million pixels; actual DPI is recorded.
+
+
+For 2.3.1 economical PDF storage, selected-page extraction and durable review history, see [Library storage and review](LIBRARY_REVIEW.md).

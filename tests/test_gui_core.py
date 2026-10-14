@@ -35,13 +35,14 @@ class GuiCoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / 'norm.html'
             source.write_text('fixture', encoding='utf-8')
-            options = JobOptions(source, ocr_languages='rus+eng', pdf_render_mode='Sparse', max_render_pages=20, source_policy='Reference', force=True)
+            options = JobOptions(source, ocr_languages='rus+eng', pdf_render_mode='Sparse', max_render_pages=20, source_policy='Reference', ocr_pdf_policy='Temporary', force=True)
             self.assertIsNone(validate_options(options))
             command = build_runner_command('Convert', options=options)
-            for value in ['rus+eng', 'Sparse', '20', 'Reference', '-Force']:
+            for value in ['rus+eng', 'Sparse', '20', 'Reference', 'Temporary', '-Force']:
                 self.assertIn(value, command)
             self.assertIsNotNone(validate_options(JobOptions(source, ocr_languages='../../unknown')))
             self.assertIsNotNone(validate_options(JobOptions(source, max_render_pages=-1)))
+            self.assertIsNotNone(validate_options(JobOptions(source, ocr_pdf_policy='unknown')))
 
     def test_classifies_supported_inputs(self) -> None:
         self.assertEqual(classify_input(Path("report.pdf")), "pdf")

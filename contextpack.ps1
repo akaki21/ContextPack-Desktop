@@ -9,6 +9,8 @@
     [ValidateSet('All', 'Sparse', 'None')][string]$PdfRenderMode = 'All',
     [ValidateRange(0, 100000)][int]$MaxRenderPages = 100,
     [ValidateSet('Copy', 'Reference')][string]$SourcePolicy = 'Copy',
+    [ValidateSet('Keep', 'Temporary')][string]$OcrPdfPolicy = 'Keep',
+    [string]$PdfPages,
     [switch]$Force,
     [string]$CancelFile
 )
@@ -20,4 +22,4 @@ $root = $PSScriptRoot
 
 $inputPath = Resolve-ContextPackInput -InputFile $InputFile
 $inputType = Get-ContextPackInputType -InputPath $inputPath
-Invoke-ContextPackProcessor -Root $root -InputPath $inputPath -InputType $inputType -Mode $Mode -Dpi $Dpi -ExcelRenderMode $ExcelRenderMode -MaxAutoFitColumns $MaxAutoFitColumns -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages -PdfRenderMode $PdfRenderMode -MaxRenderPages $MaxRenderPages -SourcePolicy $SourcePolicy -Force:$Force -CancelFile $CancelFile
+Invoke-ContextPackProcessor -Root $root -InputPath $inputPath -InputType $inputType -Mode $Mode -Dpi $Dpi -ExcelRenderMode $ExcelRenderMode -MaxAutoFitColumns $MaxAutoFitColumns -OutputDirectory $OutputDirectory -OcrLanguages $OcrLanguages -PdfRenderMode $PdfRenderMode -MaxRenderPages $MaxRenderPages -SourcePolicy $SourcePolicy -OcrPdfPolicy $OcrPdfPolicy -PdfPages $PdfPages -Force:$Force -CancelFile $CancelFile

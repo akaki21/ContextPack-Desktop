@@ -20,4 +20,5 @@ class JobOptions:
     pdf_render_mode: str = 'All'
     max_render_pages: int = 100
     source_policy: str = 'Copy'
+    ocr_pdf_policy: str = 'Keep'
     force: bool = False

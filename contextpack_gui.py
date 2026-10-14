@@ -78,6 +78,7 @@ class ContextPackGui:
         self.ocr_languages_var = tk.StringVar(value='kat+eng')
         self.pdf_render_var = tk.StringVar(value='All')
         self.max_render_pages_var = tk.IntVar(value=100)
+        self.ocr_pdf_policy_var = tk.StringVar(value='Keep')
         self.source_policy_var = tk.StringVar(value='Copy')
         self.force_var = tk.BooleanVar(value=False)
         self.status_var = tk.StringVar()
@@ -215,6 +216,7 @@ class ContextPackGui:
             pdf_render_mode=self.pdf_render_var.get(),
             max_render_pages=max_render_pages,
             source_policy=self.source_policy_var.get(),
+            ocr_pdf_policy=self.ocr_pdf_policy_var.get(),
             force=self.force_var.get(),
         )
         error = validate_options(options, self.language)

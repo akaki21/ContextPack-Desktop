@@ -50,7 +50,7 @@ jobs:
       - shell: powershell
         run: .\setup.ps1 -SkipTesseractInstall
       - shell: powershell
-        run: .\installer\build-installer.ps1 -Version 2.3.0
+        run: .\installer\build-installer.ps1 -Version 2.3.1
       - uses: actions/upload-artifact@v6
         with:
           name: ContextPack-Setup

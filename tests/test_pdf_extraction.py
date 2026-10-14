@@ -2,12 +2,47 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
+import os
+from types import SimpleNamespace
 
 from PIL import Image
-from contextpack.pdf.extraction import extract_pdf, text_needs_ocr
+from contextpack.pdf.extraction import extract_pdf, text_needs_ocr, selected_pages, ocr_page
 
 
 class PdfExtractionTests(unittest.TestCase):
+    def test_fallback_uses_short_scratch_and_preserves_raw_outputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            scratch = root / 'short'
+            scratch.mkdir()
+            output = root / 'long-output'
+            def fake_run(command, **kwargs):
+                self.assertEqual(Path(command[1]).parent.parent, scratch)
+                base = Path(command[2])
+                base.with_suffix('.txt').write_text('14,5 м²', encoding='utf-8')
+                base.with_suffix('.tsv').write_text('level\tconf\ttext\n5\t97\t14,5\n', encoding='utf-8')
+                return SimpleNamespace(returncode=0)
+            with patch.dict(os.environ, {'CONTEXTPACK_TEMP': str(scratch)}), patch('contextpack.pdf.extraction.render_page', return_value=300), patch('contextpack.pdf.extraction.subprocess.run', side_effect=fake_run):
+                text, info = ocr_page(None, output=output, number=4, tesseract='fixture', tessdata='', languages='rus')
+            self.assertEqual(text, '14,5 м²')
+            self.assertEqual(info['mean_word_confidence'], 97)
+            self.assertTrue((output / 'page-004.tsv').is_file())
+            self.assertEqual(list(scratch.iterdir()), [])
+
+    def test_selected_pages_keep_original_numbering_and_reject_invalid_scope(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source = self.make_pdf(root)
+            result = extract_pdf(source, root / 'pages', page_text=root / 'text.md', render_mode='None', pages='1,3', source_name='original.pdf')
+            self.assertEqual(result['extracted_pages'], [1, 3])
+            self.assertEqual(result['page_count'], 3)
+            self.assertEqual(result['coverage'], 'selected')
+            self.assertEqual(result['source'], 'original.pdf')
+            self.assertNotIn('source-page: 2', (root / 'text.md').read_text(encoding='utf-8'))
+        for selection in ('0', '2-1', '4', '1,,2', '1-99999999', '-1'):
+            with self.subTest(selection=selection), self.assertRaises(ValueError):
+                selected_pages(selection, 3)
+
     def make_pdf(self, root: Path):
         source = root / 'three-pages.pdf'
         images = [Image.new('RGB', (100, 100), 'white') for _ in range(3)]

@@ -45,3 +45,6 @@ Sources remain unchanged. Changes detected during processing prevent publication
 Run `tests/test-static.ps1`, Python unittest discovery, `tests/test-common.ps1`, `tests/test-library.ps1` and `tests/test-e2e.ps1`. Isolated checkouts can set `CONTEXTPACK_PYTHON` to an existing interpreter and `CONTEXTPACK_TESSDATA` to an existing model/config directory. Do not commit local paths. Default installs use `.venv` and `tessdata`.
 
 The Russian model is pinned to the same [official tessdata_fast revision](https://github.com/tesseract-ocr/tessdata_fast/tree/87416418657359cb625c412a48b6e1d6d41c29bd) as the other models, with SHA-256 verification in setup. HTML explicitly uses the HTML5 parser; [Beautiful Soup documents why parser choice matters](https://www.crummy.com/software/BeautifulSoup/bs4/doc/#differences-between-parsers).
+
+
+For 2.3.1 economical PDF storage, selected-page extraction and durable review history, see [Library storage and review](LIBRARY_REVIEW.md).
